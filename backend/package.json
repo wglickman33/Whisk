@@ -9,7 +9,11 @@
     "start": "node dist/index.js",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "heroku-postbuild": "npx prisma generate && npm run build && npx prisma db push"
+  },
+  "engines": {
+    "node": "22.x"
   },
   "dependencies": {
     "@prisma/client": "^6.0.0",
