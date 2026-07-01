@@ -1,0 +1,108 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  recipes Recipe[]
+}
+
+model Recipe {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  type        String   @default("food")
+  servings    Float
+  servingUnit String   @default("servings")
+  prepTime    Int?
+  cookTime    Int?
+  notes       String?
+  sourceUrl   String?
+  unitSystem  String   @default("inherit")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folderId  String?
+  folder    Folder?  @relation(fields: [folderId], references: [id])
+  categoryId String?
+  category  Category? @relation(fields: [categoryId], references: [id])
+
+  ingredients Ingredient[]
+  steps       Step[]
+  metrics     RecipeMetrics?
+  tags        RecipeTag[]
+}
+
+model Ingredient {
+  id         String  @id @default(uuid())
+  recipeId   String
+  recipe     Recipe  @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  name       String
+  quantity   Float
+  unit       String
+  notes      String?
+  isOptional Boolean @default(false)
+  order      Int
+}
+
+model Step {
+  id            String   @id @default(uuid())
+  recipeId      String
+  recipe        Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  order         Int
+  instruction   String
+  timerMinutes  Float?
+  imageUrl      String?
+}
+
+model RecipeMetrics {
+  id       String  @id @default(uuid())
+  recipeId String  @unique
+  recipe   Recipe  @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  calories Float?
+  protein  Float?
+  fat      Float?
+  carbs    Float?
+  fiber    Float?
+  sodium   Float?
+}
+
+model Folder {
+  id      String   @id @default(uuid())
+  name    String
+  recipes Recipe[]
+}
+
+model Category {
+  id      String   @id @default(uuid())
+  name    String
+  recipes Recipe[]
+}
+
+model Tag {
+  id      String      @id @default(uuid())
+  label   String      @unique
+  color   String?
+  recipes RecipeTag[]
+}
+
+model RecipeTag {
+  recipeId String
+  tagId    String
+  recipe   Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  tag      Tag    @relation(fields: [tagId], references: [id])
+  @@id([recipeId, tagId])
+}

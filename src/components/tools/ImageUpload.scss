@@ -1,0 +1,150 @@
+@use "../../styles/tokens" as *;
+
+.image-upload {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.image-drop {
+  border: 2px dashed var(--border);
+  border-radius: $radius-md;
+  background: var(--surface);
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: border-color $transition-base, background-color $transition-base;
+
+  &:hover {
+    border-color: var(--accent);
+    background: var(--surface-hover);
+  }
+
+  &:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  &--dragging {
+    border-color: var(--accent);
+    border-style: solid;
+    background: var(--bg-elevated);
+  }
+
+  &--filled {
+    border-style: solid;
+    border-color: var(--border);
+    cursor: default;
+  }
+
+  &__input {
+    position: absolute;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+  }
+}
+
+.image-drop__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-muted);
+  padding: 2rem;
+  text-align: center;
+
+  svg {
+    color: var(--text-muted);
+  }
+}
+
+.image-drop__label {
+  font-size: 0.95rem;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.image-drop__hint {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.image-drop__formats {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
+.image-drop__loading {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  padding: 2rem;
+}
+
+.image-drop__preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  width: 100%;
+}
+
+.image-drop__thumb {
+  max-width: 100%;
+  max-height: 220px;
+  border-radius: $radius-sm;
+  object-fit: contain;
+}
+
+.image-drop__meta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.image-drop__filename {
+  font-size: 0.85rem;
+  color: var(--text);
+  word-break: break-all;
+  text-align: center;
+  max-width: 100%;
+}
+
+.image-drop__dims {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.image-drop__change {
+  margin-top: 0.35rem;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: $radius-sm;
+  color: var(--text);
+  font-size: 0.8rem;
+  font-family: inherit;
+  padding: 0.35rem 0.85rem;
+  cursor: pointer;
+  transition: border-color $transition-base, color $transition-base;
+
+  &:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+}
+
+.image-upload__error {
+  font-size: 0.85rem;
+  color: var(--error);
+  padding: 0.6rem 0.8rem;
+  background: var(--error-muted);
+  border: 1px solid var(--error);
+  border-radius: $radius-sm;
+}

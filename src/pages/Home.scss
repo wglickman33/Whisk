@@ -1,0 +1,67 @@
+@use "../styles/tokens" as *;
+
+article {
+  max-width: 900px;
+}
+
+h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 $space-md;
+}
+
+.home-intro {
+  font-size: 1.1rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin: 0 0 $space-xl;
+}
+
+.home-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: $space-lg;
+}
+
+.home-card {
+  display: flex;
+  flex-direction: column;
+  gap: $space-sm;
+  padding: $space-xl;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: $radius-lg;
+  color: var(--text);
+  text-decoration: none;
+  transition: border-color $transition-base, background-color $transition-base;
+
+  &:hover {
+    border-color: var(--accent);
+    background: var(--bg-elevated);
+  }
+}
+
+.home-card__icon {
+  display: flex;
+  color: var(--accent);
+
+  svg {
+    width: 2rem;
+    height: 2rem;
+  }
+}
+
+.home-card__title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text);
+}
+
+.home-card__desc {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.5;
+}

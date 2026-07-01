@@ -1,0 +1,39 @@
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import { VitePWA } from "vite-plugin-pwa";
+
+// https://vite.dev/config/
+export default defineConfig({
+  plugins: [
+    react(),
+    VitePWA({
+      registerType: "autoUpdate",
+      workbox: {
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+        globIgnores: ["**/*.wasm"],
+      },
+      manifest: {
+        name: "Whisk",
+        short_name: "Whisk",
+        description: "Personal recipe and converter app",
+        theme_color: "#c96b3a",
+        background_color: "#e8dfd2",
+        display: "standalone",
+        icons: [
+          {
+            src: "/assets/whiskLogoAmber.png",
+            sizes: "192x192",
+            type: "image/png",
+            purpose: "any maskable",
+          },
+        ],
+      },
+    }),
+  ],
+  server: {
+    headers: {
+      "Cross-Origin-Opener-Policy": "same-origin",
+      "Cross-Origin-Embedder-Policy": "require-corp",
+    },
+  },
+});

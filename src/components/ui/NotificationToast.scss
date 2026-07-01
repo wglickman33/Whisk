@@ -1,0 +1,130 @@
+@use "../../styles/tokens" as *;
+
+.notification-toast-container {
+  position: fixed;
+  top: $space-md;
+  right: $space-md;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: $space-sm;
+  max-width: min(400px, calc(100vw - #{$space-md * 2}));
+  pointer-events: none;
+
+  // Allow clicks on toasts
+  > * {
+    pointer-events: auto;
+  }
+}
+
+.notification-toast {
+  display: flex;
+  align-items: center;
+  gap: $space-sm;
+  padding: $space-sm $space-md;
+  border-radius: $radius-md;
+  box-shadow: var(--shadow-lg);
+  background: var(--bg-elevated);
+  border-left: 4px solid;
+  min-width: 260px;
+  max-width: 100%;
+  animation: notification-toast-slide-in 0.3s ease-out;
+
+  &--success {
+    border-left-color: var(--success);
+
+    .notification-toast__icon {
+      background: var(--success);
+      color: white;
+    }
+  }
+
+  &--error {
+    border-left-color: var(--error);
+
+    .notification-toast__icon {
+      background: var(--error);
+      color: white;
+    }
+  }
+
+  &--warning {
+    border-left-color: #f59e0b;
+
+    .notification-toast__icon {
+      background: #f59e0b;
+      color: white;
+    }
+  }
+
+  &--info {
+    border-left-color: #3b82f6;
+
+    .notification-toast__icon {
+      background: #3b82f6;
+      color: white;
+    }
+  }
+}
+
+.notification-toast__content {
+  display: flex;
+  align-items: center;
+  gap: $space-sm;
+  flex: 1;
+  min-width: 0;
+}
+
+.notification-toast__icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.notification-toast__message {
+  color: var(--text);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.notification-toast__close {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: $space-xs;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color $transition-base;
+
+  &:hover {
+    color: var(--text);
+  }
+
+  &:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
+@keyframes notification-toast-slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}

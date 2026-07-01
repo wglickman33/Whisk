@@ -1,0 +1,40 @@
+@use "../../styles/tokens" as *;
+
+.mobile-header {
+  display: flex;
+  align-items: center;
+  padding: $space-sm $space-md;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-elevated);
+  flex-shrink: 0;
+}
+
+.mobile-header__menu-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: $radius-md;
+  color: var(--text);
+  cursor: pointer;
+  transition: background-color $transition-base, border-color $transition-base;
+
+  &:hover {
+    background: var(--surface-hover);
+    border-color: var(--border-hover);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  svg {
+    width: 22px;
+    height: 22px;
+  }
+}

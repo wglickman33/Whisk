@@ -1,0 +1,227 @@
+@use "../../styles/tokens" as *;
+
+.auth-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: $space-md;
+  animation: auth-overlay-in $transition-base ease-out;
+}
+
+@keyframes auth-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.auth-modal {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: $radius-lg;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+  animation: auth-modal-in $transition-slow ease-out;
+}
+
+@keyframes auth-modal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.auth-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $space-xl $space-xl $space-md;
+}
+
+.auth-modal__title {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+
+.auth-modal__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  background: none;
+  border: none;
+  font-size: 1.75rem;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: $radius-sm;
+  transition: color $transition-base, background-color $transition-base;
+
+  &:hover {
+    color: var(--text);
+    background: var(--surface-hover);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
+.auth-modal__close-icon {
+  display: block;
+  line-height: 1;
+  transform: translateY(-0.06em);
+}
+
+.auth-modal__tabs {
+  display: flex;
+  gap: 0;
+  padding: 0 $space-xl;
+  border-bottom: 1px solid var(--border);
+}
+
+.auth-modal__tab {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: color $transition-base, border-color $transition-base;
+
+  &:hover {
+    color: var(--text);
+  }
+
+  &--active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
+}
+
+.auth-modal__form {
+  padding: $space-xl;
+  display: flex;
+  flex-direction: column;
+  gap: $space-lg;
+}
+
+.auth-modal__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.auth-modal__label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+}
+
+.auth-modal__input {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: $radius-md;
+  color: var(--text);
+  font-size: 1rem;
+  padding: 0.7rem 0.85rem;
+  font-family: inherit;
+  transition: border-color $transition-base, box-shadow $transition-base;
+
+  &::placeholder {
+    color: var(--text-muted);
+    opacity: 0.7;
+  }
+
+  &:focus {
+    border-color: var(--accent);
+    outline: none;
+  }
+}
+
+.auth-modal__submit {
+  background: var(--accent);
+  border: none;
+  border-radius: $radius-md;
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 0.85rem 1rem;
+  cursor: pointer;
+  margin-top: 0.25rem;
+  transition: background-color $transition-base, opacity $transition-base;
+
+  &:hover:not(:disabled) {
+    background: var(--accent-hover);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+  }
+}
+
+.auth-modal__footer {
+  padding: $space-md $space-xl $space-xl;
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  text-align: center;
+  border-top: 1px solid var(--border);
+}
+
+.auth-modal__footer-link {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  font-family: inherit;
+  font-size: inherit;
+
+  &:hover {
+    color: var(--accent-hover);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}

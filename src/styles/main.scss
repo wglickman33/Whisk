@@ -1,0 +1,17 @@
+@use "reset";
+@use "themes";
+
+html {
+  overflow-x: hidden;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.app-content {
+  background-color: var(--bg);
+}

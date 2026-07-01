@@ -1,0 +1,111 @@
+@use "../../styles/tokens" as *;
+
+/* Icon sidebar: only visible in tablet range (641px–1110px), like mkd */
+.icon-sidebar {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 60px;
+  z-index: 5;
+  flex-direction: column;
+  padding: $space-sm 0;
+  border-inline-end: 1px solid var(--border);
+  background: var(--bg-elevated);
+  transition: opacity $transition-base;
+
+  @media (min-width: 641px) and (max-width: 1110px) {
+    display: flex;
+  }
+
+  &--menu-open {
+    @media (min-width: 641px) and (max-width: 1110px) {
+      opacity: 0;
+      pointer-events: none;
+    }
+  }
+
+  &__hamburger {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    margin: 0 auto $space-sm;
+    padding: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: $radius-md;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: color $transition-base, background-color $transition-base, border-color $transition-base;
+
+    &:hover {
+      color: var(--text);
+      background: var(--surface-hover);
+      border-color: var(--border-hover);
+    }
+
+    svg {
+      width: 20px;
+      height: 20px;
+    }
+  }
+
+  &__nav {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding-block-start: $space-xs;
+    min-height: 0;
+  }
+
+  &__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: $space-xs;
+
+    &--secondary {
+      margin-block-start: auto;
+      padding-block-start: $space-md;
+      border-block-start: 1px solid var(--border);
+    }
+  }
+
+  &__link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    color: var(--text);
+    transition: color $transition-base, background-color $transition-base;
+
+    &:hover {
+      background: var(--surface-hover);
+      color: var(--text);
+    }
+
+    &--active {
+      background: var(--accent-muted);
+      color: var(--accent);
+
+      &:hover {
+        background: var(--accent);
+        color: #fff;
+      }
+    }
+
+    svg {
+      width: 20px;
+      height: 20px;
+    }
+  }
+}

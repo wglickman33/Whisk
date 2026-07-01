@@ -1,0 +1,52 @@
+@use "../../styles/tokens" as *;
+
+.crop-workspace {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+
+  .ReactCrop {
+    max-width: 100%;
+    border-radius: $radius-md;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+}
+
+.crop-workspace__source {
+  max-width: 100%;
+  display: block;
+}
+
+.crop-workspace__actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.crop-workspace__info {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.crop-workspace__btn {
+  background: var(--accent);
+  border: none;
+  border-radius: $radius-md;
+  color: white;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 0.65rem 1.5rem;
+  cursor: pointer;
+  transition: background-color $transition-base, opacity $transition-base;
+
+  &:hover:not(:disabled) {
+    background: var(--accent-hover);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
