@@ -16,8 +16,24 @@ const JWT_SECRET = process.env.JWT_SECRET ?? "dev-secret-change-in-production";
 const SALT_ROUNDS = 10;
 const RESET_TTL_MS = 60 * 60 * 1000;
 
+function getFrontendOrigins(): string[] {
+  return (process.env.FRONTEND_URL ?? "http://localhost:5173")
+    .split(",")
+    .map((u) => u.trim())
+    .filter(Boolean);
+}
+
+/** Production reset links use the https origin; local dev uses localhost. */
+function getResetLinkBase(): string {
+  const origins = getFrontendOrigins();
+  if (process.env.NODE_ENV === "production") {
+    return origins.find((u) => u.startsWith("https://")) ?? origins[0] ?? "http://localhost:5173";
+  }
+  return origins.find((u) => /localhost|127\.0\.0\.1/.test(u)) ?? origins[0] ?? "http://localhost:5173";
+}
+
 function resetFrontendUrl(token: string, email: string): string {
-  const base = (process.env.FRONTEND_URL ?? "http://localhost:5173").split(",")[0].trim();
+  const base = getResetLinkBase();
   const params = new URLSearchParams({
     reset: "1",
     token,
