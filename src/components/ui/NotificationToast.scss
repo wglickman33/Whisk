@@ -30,6 +30,10 @@
   max-width: 100%;
   animation: notification-toast-slide-in 0.3s ease-out;
 
+  &--exit {
+    animation: notification-toast-slide-out 0.3s ease-in forwards;
+  }
+
   &--success {
     border-left-color: var(--success);
 
@@ -120,11 +124,22 @@
 
 @keyframes notification-toast-slide-in {
   from {
-    transform: translateX(100%);
+    transform: translateX(calc(100% + #{$space-md}));
     opacity: 0;
   }
   to {
     transform: translateX(0);
     opacity: 1;
+  }
+}
+
+@keyframes notification-toast-slide-out {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(calc(100% + #{$space-md}));
+    opacity: 0;
   }
 }

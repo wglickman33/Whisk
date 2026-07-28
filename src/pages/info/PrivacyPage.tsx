@@ -22,7 +22,7 @@ export function PrivacyPage() {
         <h2>What runs on your device</h2>
         <ul>
           <li>File format conversions (images, audio, video, documents, data files)</li>
-          <li>Image tools — crop, resize, compress, background removal, QR codes, and more</li>
+          <li>Image tools: crop, resize, compress, background removal, QR codes, and more</li>
           <li>Unit converter calculations</li>
           <li>PWA caching for offline use</li>
         </ul>

@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
-import { CapabilitySection } from "../components/capabilities/CapabilitySection";
-import { FormatChipList } from "../components/capabilities/FormatChipList";
-import "../components/capabilities/CapabilitySection.scss";
+import { CapabilitySection } from "../../components/capabilities/CapabilitySection";
+import { FormatChipList } from "../../components/capabilities/FormatChipList";
+import "../../components/capabilities/CapabilitySection.scss";
 import {
   APP_CAPABILITIES,
   CAPABILITIES_COPY,
@@ -9,7 +9,7 @@ import {
   TOOL_CAPABILITIES,
   UNSUPPORTED_ITEMS,
   getSupportedFormatGroups,
-} from "../constants/capabilities";
+} from "../../constants/capabilities";
 import "./CapabilitiesPage.scss";
 
 export function CapabilitiesPage() {

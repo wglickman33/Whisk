@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { DocSection } from "../components/docs/DocSection";
+import { DocSection } from "../../components/docs/DocSection";
 import "./DocsPage.scss";
 
 export function DocsPage() {
@@ -54,13 +54,13 @@ export function DocsPage() {
 
         <DocSection title="Features">
           <ul>
-            <li><strong>File converter</strong> — Images, audio, video, documents, and data formats (see Capabilities)</li>
-            <li><strong>Image tools</strong> — Crop, resize, compress, remove background, QR, markdown preview</li>
-            <li><strong>Unit converter</strong> — Volume, weight, temperature, length</li>
-            <li><strong>Recipes</strong> — CRUD, URL import, folders, tags, search</li>
-            <li><strong>Shopping list</strong> — Syncs when signed in; local fallback when signed out</li>
-            <li><strong>Settings</strong> — Theme and default unit category with server sync</li>
-            <li><strong>Auth</strong> — Register, sign in, forgot/reset password</li>
+            <li><strong>File converter</strong>: Images, audio, video, documents, and data formats (see Capabilities)</li>
+            <li><strong>Image tools</strong>: Crop, resize, compress, remove background, QR, markdown preview</li>
+            <li><strong>Unit converter</strong>: Volume, weight, temperature, length</li>
+            <li><strong>Recipes</strong>: CRUD, URL import, folders, tags, search</li>
+            <li><strong>Shopping list</strong>: Syncs when signed in; local fallback when signed out</li>
+            <li><strong>Settings</strong>: Theme and default unit category with server sync</li>
+            <li><strong>Auth</strong>: Register, sign in, forgot/reset password</li>
           </ul>
         </DocSection>
 

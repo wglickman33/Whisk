@@ -1,7 +1,7 @@
 import { useSettingsStore } from "../store/settingsStore";
 import { useAuthStore } from "../store/authStore";
 import { useAuthModalStore } from "../store/authModalStore";
-import { UNIT_CATEGORIES, CATEGORY_LABELS, type UnitCategory } from "../converters/utils/unitUtils";
+import { UNIT_CATEGORIES, CATEGORY_LABELS, type UnitCategory } from "../converters/units/unitUtils";
 import "./SettingsPage.scss";
 
 export function SettingsPage() {

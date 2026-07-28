@@ -1,5 +1,5 @@
-import type { FormatCategory } from "../../converters/core/types";
-import { formatsByCategory, CATEGORY_LABELS } from "../../converters/utils/fileUtils";
+import type { FormatCategory } from "../core/types";
+import { formatsByCategory, CATEGORY_LABELS } from "./fileUtils";
 
 const CATEGORY_ORDER: FormatCategory[] = [
   "image",

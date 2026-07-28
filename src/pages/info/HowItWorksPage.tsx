@@ -57,7 +57,7 @@ export function HowItWorksPage() {
         <ol>
           <li>You drop a file in the converter.</li>
           <li>Whisk picks the right handler (image, audio, video, document, or data).</li>
-          <li>Conversion runs locally — including self-hosted FFmpeg for media.</li>
+          <li>Conversion runs locally: including self-hosted FFmpeg for media.</li>
           <li>You download the result. Nothing is sent to Whisk servers.</li>
         </ol>
         <p>

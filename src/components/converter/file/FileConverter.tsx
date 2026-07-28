@@ -1,12 +1,12 @@
 import { useState, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
-import { IconUpload, IconArrow, IconDownload } from "../ui/ConverterIcons";
-import { toastSuccess, toastError } from "../../store/toastStore";
-import { convert, getSupportedOutputFormats } from "../../converters/core/conversionEngine";
-import { fileToFileData, downloadFileData } from "../../converters/utils/fileUtils";
-import { validateFileForConverter } from "../../utils/fileSecurity";
-import { CATEGORY_ORDER, CATEGORY_LABELS, groupOutputsByCategory } from "./groupOutputFormats";
-import type { FileData, ConversionStatus } from "../../converters/core/types";
+import { IconUpload, IconArrow, IconDownload } from "../../ui/ConverterIcons";
+import { toastSuccess, toastError } from "../../../store/toastStore";
+import { convert, getSupportedOutputFormats } from "../../../converters/core/conversionEngine";
+import { fileToFileData, downloadFileData } from "../../../converters/utils/fileUtils";
+import { validateFileForConverter } from "../../../utils/fileSecurity";
+import { CATEGORY_ORDER, CATEGORY_LABELS, groupOutputsByCategory } from "../../../converters/utils/groupOutputFormats";
+import type { FileData, ConversionStatus } from "../../../converters/core/types";
 import "./FileConverter.scss";
 
 export function FileConverter() {

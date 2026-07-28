@@ -170,6 +170,10 @@ router.post("/forgot-password", async (req, res) => {
     res.json({ message: "If that email exists, a reset link was sent." });
   } catch (err) {
     console.error(err);
+    if (err instanceof Error && err.message.includes("template ID not found")) {
+      res.status(503).json({ error: "Email service misconfigured. Check EMAILJS_TEMPLATE_ID." });
+      return;
+    }
     res.status(500).json({ error: "Could not process reset request." });
   }
 });

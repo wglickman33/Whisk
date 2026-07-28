@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { convert } from "../utils/unitUtils";
+import { convert } from "./unitUtils";
+import { parseUnitInput } from "./unitInput";
 
 describe("unitUtils.convert", () => {
   it("converts cups to ml", () => {
@@ -18,5 +19,11 @@ describe("unitUtils.convert", () => {
 
   it("handles zero", () => {
     expect(convert(0, "length", "ft", "m")).toBe(0);
+  });
+
+  it("converts parsed fraction input for volume", () => {
+    const value = parseUnitInput("1/2");
+    expect(value).toBe(0.5);
+    expect(convert(value!, "volume", "cup", "ml")).toBeCloseTo(118.294, 1);
   });
 });

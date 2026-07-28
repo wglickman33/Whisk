@@ -39,7 +39,7 @@ export const IMPOSSIBLE_EXAMPLES = [
 
 export const CAPABILITIES_COPY = {
   pageTitle: "What Whisk Can Do",
-  pageSubtitle: "Quick reference — no fine print.",
+  pageSubtitle: "Quick reference. No fine print.",
   supportedTitle: "Supported",
   supportedNote: "Runs on your device. Files are not uploaded for conversion.",
   toolsTitle: "Image tools",
@@ -48,7 +48,7 @@ export const CAPABILITIES_COPY = {
   unsupportedNote:
     "These need desktop software or paid servers. Whisk stays free and private instead.",
   impossibleTitle: "Won't convert",
-  impossibleNote: "Some combinations don't make sense — we won't offer them.",
+  impossibleNote: "Some combinations don't make sense, so we won't offer them.",
   freeTagline: "Free · No ads · No paywalls",
 } as const;
 

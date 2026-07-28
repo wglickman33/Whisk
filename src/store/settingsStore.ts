@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { UnitCategory } from "../converters/utils/unitUtils";
+import type { UnitCategory } from "../converters/units/unitUtils";
 import { preferencesApi } from "../api/client";
 
 type Theme = "light" | "dark";

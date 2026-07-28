@@ -21,11 +21,11 @@ import { QRGeneratorPage } from "./pages/tools/QRGeneratorPage";
 import { MarkdownPage } from "./pages/tools/MarkdownPage";
 import { RecipesPage } from "./pages/RecipesPage";
 import { ShoppingListPage } from "./pages/ShoppingListPage";
-import { DocsPage } from "./pages/DocsPage";
-import { CapabilitiesPage } from "./pages/CapabilitiesPage";
+import { DocsPage } from "./pages/info/DocsPage";
+import { CapabilitiesPage } from "./pages/info/CapabilitiesPage";
 import { SettingsPage } from "./pages/SettingsPage";
-import { PrivacyPage } from "./pages/PrivacyPage";
-import { HowItWorksPage } from "./pages/HowItWorksPage";
+import { PrivacyPage } from "./pages/info/PrivacyPage";
+import { HowItWorksPage } from "./pages/info/HowItWorksPage";
 
 function PasswordResetFromUrl() {
   const openResetModal = useAuthModalStore((s) => s.openResetModal);
