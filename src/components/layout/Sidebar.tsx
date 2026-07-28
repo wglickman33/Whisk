@@ -14,10 +14,14 @@ import {
   IconTools,
   IconRecipe,
   IconDocs,
+  IconCapabilities,
   IconUser,
   IconLogin,
   IconLogout,
   IconShoppingList,
+  IconSettings,
+  IconShield,
+  IconInfo,
 } from "../ui/SidebarIcons";
 import { IconMoon, IconSun } from "../ui/AnimatedIcon";
 import { IconHamburger } from "../ui/IconHamburger";
@@ -40,9 +44,15 @@ const mainNavItems = [
   { to: "/tools", label: "Tools", icon: IconTools },
   { to: "/recipes", label: "Recipes", icon: IconRecipe },
   { to: "/shopping-list", label: "Shopping list", icon: IconShoppingList },
+  { to: "/settings", label: "Settings", icon: IconSettings },
 ];
 
-const secondaryNavItems = [{ to: "/docs", label: "Documentation", icon: IconDocs }];
+const secondaryNavItems = [
+  { to: "/how-it-works", label: "How it works", icon: IconInfo },
+  { to: "/privacy", label: "Privacy", icon: IconShield },
+  { to: "/capabilities", label: "Capabilities", icon: IconCapabilities },
+  { to: "/docs", label: "Documentation", icon: IconDocs },
+];
 
 export function Sidebar() {
   const width = useWindowWidth();
@@ -147,7 +157,7 @@ export function Sidebar() {
               className="sidebar-btn sidebar-btn--primary"
               aria-label="Sign in"
               title="Sign in"
-              onClick={openAuthModal}
+              onClick={() => openAuthModal()}
             >
               {!showExpanded && <IconLogin />}
               {showExpanded && <span>Sign In</span>}

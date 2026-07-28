@@ -1,0 +1,38 @@
+@use "../../styles/tokens" as *;
+
+.format-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-sm;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  &__chip {
+    display: inline-flex;
+    align-items: center;
+    padding: $space-xs $space-md;
+    border-radius: $radius-full;
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.3;
+  }
+
+  &--supported &__chip {
+    background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+    color: var(--text);
+    border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  }
+
+  &--unsupported &__chip {
+    background: var(--surface);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+  }
+
+  &--neutral &__chip {
+    background: var(--bg-elevated);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+}

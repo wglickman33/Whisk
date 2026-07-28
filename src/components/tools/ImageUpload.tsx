@@ -1,17 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { IconUpload } from "../ui/ConverterIcons";
+import { validateImageForTools } from "../../utils/fileSecurity";
 import "./ImageUpload.scss";
-
-const ACCEPTED_TYPES = [
-  "image/png",
-  "image/jpeg",
-  "image/jpg",
-  "image/webp",
-  "image/bmp",
-  "image/gif",
-  "image/heic",
-  "image/heif",
-];
 
 const ACCEPTED_EXTENSIONS = ".png,.jpg,.jpeg,.webp,.bmp,.gif,.heic,.heif";
 
@@ -88,12 +78,10 @@ export function ImageUpload({ onImage, onClear, image, label, hint }: ImageUploa
   );
 
   const handleFile = useCallback(
-    (file: File) => {
-      const isAccepted =
-        ACCEPTED_TYPES.includes(file.type) ||
-        /\.(png|jpe?g|webp|bmp|gif|heic|heif)$/i.test(file.name);
-      if (!isAccepted) {
-        setError("Unsupported format. Use PNG, JPG, WebP, BMP, GIF, or HEIC.");
+    async (file: File) => {
+      const validation = await validateImageForTools(file);
+      if (!validation.ok) {
+        setError(validation.error ?? "File rejected.");
         return;
       }
       processFile(file);

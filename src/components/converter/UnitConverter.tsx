@@ -8,6 +8,7 @@ import {
   CATEGORY_LABELS,
   UNIT_CATEGORIES,
 } from "../../converters/utils/unitUtils";
+import { useSettingsStore } from "../../store/settingsStore";
 import "./UnitConverter.scss";
 
 function formatOutput(value: number): string {
@@ -19,13 +20,20 @@ function formatOutput(value: number): string {
 }
 
 export function UnitConverter() {
-  const [category, setCategory] = useState<UnitCategory>("volume");
-  const [fromUnit, setFromUnit] = useState("cup");
-  const [toUnit, setToUnit] = useState("ml");
+  const defaultCategory = useSettingsStore((s) => s.defaultUnitCategory);
+  const [category, setCategory] = useState<UnitCategory>(defaultCategory);
+  const [fromUnit, setFromUnit] = useState(getDefaultFromUnit(defaultCategory));
+  const [toUnit, setToUnit] = useState(getDefaultToUnit(defaultCategory));
   const [input, setInput] = useState("");
   const [output, setOutput] = useState<number | null>(null);
 
   const units = getUnitsForCategory(category);
+
+  useEffect(() => {
+    setCategory(defaultCategory);
+    setFromUnit(getDefaultFromUnit(defaultCategory));
+    setToUnit(getDefaultToUnit(defaultCategory));
+  }, [defaultCategory]);
 
   useEffect(() => {
     const val = parseFloat(input);

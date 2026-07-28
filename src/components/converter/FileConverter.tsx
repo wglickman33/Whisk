@@ -1,8 +1,10 @@
 import { useState, useCallback, useRef } from "react";
+import { Link } from "react-router-dom";
 import { IconUpload, IconArrow, IconDownload } from "../ui/ConverterIcons";
 import { toastSuccess, toastError } from "../../store/toastStore";
 import { convert, getSupportedOutputFormats } from "../../converters/core/conversionEngine";
 import { fileToFileData, downloadFileData } from "../../converters/utils/fileUtils";
+import { validateFileForConverter } from "../../utils/fileSecurity";
 import { CATEGORY_ORDER, CATEGORY_LABELS, groupOutputsByCategory } from "./groupOutputFormats";
 import type { FileData, ConversionStatus } from "../../converters/core/types";
 import "./FileConverter.scss";
@@ -19,6 +21,11 @@ export function FileConverter() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = useCallback(async (file: File) => {
+    const validation = await validateFileForConverter(file);
+    if (!validation.ok) {
+      toastError(validation.error ?? "File rejected.");
+      return;
+    }
     setInputFile(file);
     setOutputFormat("");
     setResultFile(null);
@@ -77,9 +84,15 @@ export function FileConverter() {
   return (
     <div className="file-converter">
       <header className="file-converter__header">
-        <h1 className="file-converter__title">File Converter</h1>
+        <div className="file-converter__header-row">
+          <h1 className="file-converter__title">File Converter</h1>
+          <span className="file-converter__badge">Processed on your device</span>
+        </div>
         <p className="file-converter__subtitle">
-          Drop any file. Pick a format. Done.
+          Drop any file. Pick a format. Done.{" "}
+          <Link to="/capabilities" className="file-converter__capabilities-link">
+            See all formats
+          </Link>
         </p>
       </header>
 
@@ -154,7 +167,19 @@ export function FileConverter() {
         <div className="file-converter__right">
           {!fileData ? (
             <div className="format-empty">
-              <span>Upload a file to see available output formats</span>
+              <span>Upload a file to see available output formats.</span>
+              <Link to="/capabilities#supported" className="format-empty__link">
+                View supported formats
+              </Link>
+            </div>
+          ) : supportedOutputs.length === 0 ? (
+            <div className="format-empty">
+              <span>
+                No conversions available for <strong>{inputExt}</strong> files.
+              </span>
+              <Link to="/capabilities#unsupported" className="format-empty__link">
+                See what we can't convert
+              </Link>
             </div>
           ) : (
             <>

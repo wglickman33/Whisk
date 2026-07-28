@@ -69,6 +69,118 @@
   width: 100%;
 }
 
+.recipes-page__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.recipes-page__search,
+.recipes-page__folder-filter {
+  flex: 1;
+  min-width: 140px;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: $radius-sm;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+
+.recipes-page__folder-btn {
+  padding: 0.5rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: $radius-sm;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+}
+
+.recipes-page__import {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+
+  input {
+    flex: 1;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: $radius-sm;
+    background: var(--surface);
+    color: var(--text);
+    font: inherit;
+  }
+
+  button {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: $radius-sm;
+    background: var(--accent);
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:disabled {
+      opacity: 0.5;
+    }
+  }
+}
+
+.recipes-page__card-meta-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.recipes-page__card-folder {
+  font-size: 0.75rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: $radius-full;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+
+.recipes-page__card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.35rem;
+}
+
+.recipes-page__tag {
+  font-size: 0.7rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: $radius-full;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+}
+
+.recipes-form__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.recipes-form__tag {
+  padding: 0.35rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: $radius-full;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.8rem;
+  cursor: pointer;
+
+  &--active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+  }
+}
+
 /* Guest state: title stays top-left; card centered in content area (accounts for sidebar) */
 .recipes-page__guest-overlay {
   position: fixed;

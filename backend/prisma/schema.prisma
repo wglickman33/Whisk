@@ -8,14 +8,21 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                  String   @id @default(uuid())
+  email               String   @unique
+  password            String
+  name                String?
+  theme               String   @default("light")
+  defaultUnitCategory String   @default("volume")
+  resetTokenHash      String?
+  resetTokenExpires   DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
-  recipes Recipe[]
+  recipes           Recipe[]
+  shoppingListItems ShoppingListItem[]
+  folders           Folder[]
+  tags              Tag[]
 }
 
 model Recipe {
@@ -33,12 +40,12 @@ model Recipe {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  folderId  String?
-  folder    Folder?  @relation(fields: [folderId], references: [id])
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folderId   String?
+  folder     Folder?   @relation(fields: [folderId], references: [id], onDelete: SetNull)
   categoryId String?
-  category  Category? @relation(fields: [categoryId], references: [id])
+  category   Category? @relation(fields: [categoryId], references: [id])
 
   ingredients Ingredient[]
   steps       Step[]
@@ -59,19 +66,19 @@ model Ingredient {
 }
 
 model Step {
-  id            String   @id @default(uuid())
-  recipeId      String
-  recipe        Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
-  order         Int
-  instruction   String
-  timerMinutes  Float?
-  imageUrl      String?
+  id           String  @id @default(uuid())
+  recipeId     String
+  recipe       Recipe  @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  order        Int
+  instruction  String
+  timerMinutes Float?
+  imageUrl     String?
 }
 
 model RecipeMetrics {
-  id       String  @id @default(uuid())
-  recipeId String  @unique
-  recipe   Recipe  @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  id       String @id @default(uuid())
+  recipeId String @unique
+  recipe   Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
   calories Float?
   protein  Float?
   fat      Float?
@@ -81,9 +88,13 @@ model RecipeMetrics {
 }
 
 model Folder {
-  id      String   @id @default(uuid())
-  name    String
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name   String
   recipes Recipe[]
+
+  @@unique([userId, name])
 }
 
 model Category {
@@ -93,16 +104,38 @@ model Category {
 }
 
 model Tag {
-  id      String      @id @default(uuid())
-  label   String      @unique
-  color   String?
+  id     String  @id @default(uuid())
+  userId String
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label  String
+  color  String?
   recipes RecipeTag[]
+
+  @@unique([userId, label])
 }
 
 model RecipeTag {
   recipeId String
   tagId    String
   recipe   Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
-  tag      Tag    @relation(fields: [tagId], references: [id])
+  tag      Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
   @@id([recipeId, tagId])
+}
+
+model ShoppingListItem {
+  id                String   @id @default(uuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name              String
+  quantity          Float    @default(1)
+  unit              String   @default("")
+  notes             String?
+  sourceRecipeId    String?
+  sourceRecipeTitle String?
+  sortOrder         Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([userId])
 }

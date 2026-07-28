@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useSettingsStore } from "./store/settingsStore";
 import { useAuthStore } from "./store/authStore";
+import { useAuthModalStore } from "./store/authModalStore";
 import { Layout } from "./components/layout/Layout";
 import { Favicon } from "./components/layout/Favicon";
 import { Home } from "./pages/Home";
@@ -21,6 +22,25 @@ import { MarkdownPage } from "./pages/tools/MarkdownPage";
 import { RecipesPage } from "./pages/RecipesPage";
 import { ShoppingListPage } from "./pages/ShoppingListPage";
 import { DocsPage } from "./pages/DocsPage";
+import { CapabilitiesPage } from "./pages/CapabilitiesPage";
+import { SettingsPage } from "./pages/SettingsPage";
+import { PrivacyPage } from "./pages/PrivacyPage";
+import { HowItWorksPage } from "./pages/HowItWorksPage";
+
+function PasswordResetFromUrl() {
+  const openResetModal = useAuthModalStore((s) => s.openResetModal);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("reset") !== "1") return;
+    const token = params.get("token");
+    const email = params.get("email");
+    if (token && email) {
+      openResetModal(email, token);
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, [openResetModal]);
+  return null;
+}
 
 function ThemeInit() {
   const theme = useSettingsStore((s) => s.theme);
@@ -48,6 +68,7 @@ export default function App() {
       <Favicon />
       <ThemeInit />
       <AuthInit />
+      <PasswordResetFromUrl />
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<Home />} />
@@ -69,7 +90,11 @@ export default function App() {
           </Route>
           <Route path="recipes" element={<RecipesPage />} />
           <Route path="shopping-list" element={<ShoppingListPage />} />
+          <Route path="settings" element={<SettingsPage />} />
           <Route path="docs" element={<DocsPage />} />
+          <Route path="capabilities" element={<CapabilitiesPage />} />
+          <Route path="privacy" element={<PrivacyPage />} />
+          <Route path="how-it-works" element={<HowItWorksPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

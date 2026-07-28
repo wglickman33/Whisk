@@ -5,6 +5,18 @@
 [build.environment]
   VITE_API_URL = "https://whisk-81175bd1f0e4.herokuapp.com"
 
+[[headers]]
+  for = "/ffmpeg/*"
+  [headers.values]
+    Cross-Origin-Resource-Policy = "same-origin"
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Cross-Origin-Opener-Policy = "same-origin"
+    Cross-Origin-Embedder-Policy = "require-corp"
+
 [[redirects]]
   from = "/*"
   to = "/index.html"

@@ -2,9 +2,7 @@ import type { ConversionHandler, FileData } from "../core/types";
 import { getFFmpeg } from "../utils/ffmpegLoader";
 import { swapExtension } from "../utils/fileUtils";
 
-const SUPPORTED_AUDIO_FORMATS = [
-  "mp3", "wav", "ogg", "flac", "aac", "m4a", "opus",
-];
+const AUDIO_FORMATS = ["mp3", "wav", "ogg", "flac", "aac", "m4a", "opus", "aiff", "wma", "amr", "ac3", "mid", "midi"];
 
 const AUDIO_MIME: Record<string, string> = {
   mp3:  "audio/mpeg",
@@ -14,6 +12,12 @@ const AUDIO_MIME: Record<string, string> = {
   aac:  "audio/aac",
   m4a:  "audio/mp4",
   opus: "audio/opus",
+  aiff: "audio/aiff",
+  wma:  "audio/x-ms-wma",
+  amr:  "audio/amr",
+  ac3:  "audio/ac3",
+  mid:  "audio/midi",
+  midi: "audio/midi",
 };
 
 class AudioHandler implements ConversionHandler {
@@ -27,10 +31,9 @@ class AudioHandler implements ConversionHandler {
   }
 
   canConvert(from: string, to: string): boolean {
-    return (
-      SUPPORTED_AUDIO_FORMATS.includes(from) &&
-      SUPPORTED_AUDIO_FORMATS.includes(to)
-    );
+    const f = from.toLowerCase();
+    const t = to.toLowerCase();
+    return f !== t && AUDIO_FORMATS.includes(f) && AUDIO_FORMATS.includes(t);
   }
 
   async convert(file: FileData, outputFormat: string): Promise<FileData> {

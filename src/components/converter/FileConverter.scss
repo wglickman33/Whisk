@@ -16,6 +16,35 @@
   gap: 0.4rem;
 }
 
+.file-converter__header-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.file-converter__badge {
+  display: inline-flex;
+  padding: 0.2rem 0.65rem;
+  border-radius: $radius-full;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.file-converter__capabilities-link {
+  color: var(--link);
+  text-decoration: none;
+  font-weight: 500;
+
+  &:hover {
+    color: var(--link-hover);
+    text-decoration: underline;
+  }
+}
+
 .file-converter__title {
   font-size: 1.75rem;
   font-weight: 600;
@@ -194,7 +223,9 @@
 
 .format-empty {
   display: flex;
+  flex-direction: column;
   align-items: center;
+  gap: 0.75rem;
   justify-content: center;
   min-height: 220px;
   border: 2px dashed var(--border);
@@ -203,6 +234,17 @@
   font-size: 0.85rem;
   text-align: center;
   padding: 2rem;
+
+  &__link {
+    color: var(--link);
+    font-weight: 500;
+    text-decoration: none;
+
+    &:hover {
+      color: var(--link-hover);
+      text-decoration: underline;
+    }
+  }
 }
 
 .format-panel {

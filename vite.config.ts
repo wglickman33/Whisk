@@ -4,13 +4,16 @@ import { VitePWA } from "vite-plugin-pwa";
 
 // https://vite.dev/config/
 export default defineConfig({
+  optimizeDeps: {
+    exclude: ["@ffmpeg/ffmpeg", "@ffmpeg/util", "pdfjs-dist"],
+  },
   plugins: [
     react(),
     VitePWA({
       registerType: "autoUpdate",
       workbox: {
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
-        globIgnores: ["**/*.wasm"],
+        globIgnores: ["**/*.wasm", "**/ffmpeg/**"],
       },
       manifest: {
         name: "Whisk",

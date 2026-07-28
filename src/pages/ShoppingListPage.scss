@@ -31,6 +31,22 @@
   }
 }
 
+.shopping-list-page__sync-note {
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.shopping-list-page__sign-in {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--link);
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
 .shopping-list-page__clear {
   padding: 0.5rem 1rem;
   min-height: $touch-min;

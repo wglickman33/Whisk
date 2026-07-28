@@ -1,10 +1,19 @@
 import type { ConversionHandler, FileData } from "../core/types";
 import { getFFmpeg } from "../utils/ffmpegLoader";
 import { swapExtension } from "../utils/fileUtils";
+import {
+  prepareImageForConversion,
+  canConvertImageWithCanvas,
+  convertImageWithCanvas,
+  convertImageToPdf,
+  mimeForImageFormat,
+} from "../utils/imageUtils";
 
-const SUPPORTED_IMAGE_FORMATS = [
-  "jpg", "jpeg", "png", "webp", "gif", "bmp", "tiff", "avif", "ico",
+const IMAGE_FORMATS = [
+  "jpg", "jpeg", "png", "webp", "gif", "bmp", "tiff", "avif", "ico", "heic", "heif", "svg",
 ];
+
+const IMAGE_OUTPUTS = [...IMAGE_FORMATS.filter((f) => f !== "jpeg" && f !== "heif"), "pdf"];
 
 class ImageHandler implements ConversionHandler {
   public name = "image";
@@ -12,24 +21,42 @@ class ImageHandler implements ConversionHandler {
   private ffmpeg: Awaited<ReturnType<typeof getFFmpeg>> | null = null;
 
   async init(): Promise<void> {
-    this.ffmpeg = await getFFmpeg();
     this.ready = true;
   }
 
+  private async ensureFfmpeg(): Promise<void> {
+    if (!this.ffmpeg) {
+      this.ffmpeg = await getFFmpeg();
+    }
+  }
+
   canConvert(from: string, to: string): boolean {
-    return (
-      SUPPORTED_IMAGE_FORMATS.includes(from) &&
-      SUPPORTED_IMAGE_FORMATS.includes(to)
-    );
+    const f = from.toLowerCase();
+    const t = to.toLowerCase();
+    if (f === t) return false;
+    if (!IMAGE_FORMATS.includes(f)) return false;
+    if (t === "pdf") return true;
+    return IMAGE_OUTPUTS.includes(t) && t !== "pdf";
   }
 
   async convert(file: FileData, outputFormat: string): Promise<FileData> {
+    const prepared = await prepareImageForConversion(file);
+
+    if (outputFormat === "pdf") {
+      return convertImageToPdf(prepared);
+    }
+
+    if (canConvertImageWithCanvas(prepared.extension, outputFormat)) {
+      return convertImageWithCanvas(prepared, outputFormat);
+    }
+
+    await this.ensureFfmpeg();
     if (!this.ffmpeg) throw new Error("ImageHandler not initialized");
 
-    const inputName = `input.${file.extension}`;
+    const inputName = `input.${prepared.extension}`;
     const outputName = `output.${outputFormat}`;
 
-    await this.ffmpeg.writeFile(inputName, file.buffer);
+    await this.ffmpeg.writeFile(inputName, prepared.buffer);
     await this.ffmpeg.exec(["-i", inputName, outputName]);
 
     const outputData = await this.ffmpeg.readFile(outputName) as Uint8Array;
@@ -39,7 +66,7 @@ class ImageHandler implements ConversionHandler {
     return {
       name: swapExtension(file.name, outputFormat),
       buffer: new Uint8Array(outputData),
-      mimeType: `image/${outputFormat === "jpg" ? "jpeg" : outputFormat}`,
+      mimeType: mimeForImageFormat(outputFormat),
       extension: outputFormat,
     };
   }

@@ -4,6 +4,7 @@ import AudioHandler from "../handlers/audioHandler";
 import VideoHandler from "../handlers/videoHandler";
 import DataHandler from "../handlers/dataHandler";
 import DocumentHandler from "../handlers/documentHandler";
+import { ALL_FORMAT_EXTENSIONS, normalizeExtension } from "../utils/fileUtils";
 
 const HANDLERS: ConversionHandler[] = [
   new ImageHandler(),
@@ -22,10 +23,10 @@ async function ensureHandler(handler: ConversionHandler): Promise<void> {
 export async function convert(
   file: FileData,
   outputFormat: string,
-  _onProgress?: (progress: number) => void
+  onProgress?: (progress: number) => void
 ): Promise<ConversionResult> {
-  const from = file.extension.toLowerCase();
-  const to = outputFormat.toLowerCase();
+  const from = normalizeExtension(file.extension.toLowerCase());
+  const to = normalizeExtension(outputFormat.toLowerCase());
 
   if (from === to) {
     return { success: false, error: "Input and output formats are the same." };
@@ -36,12 +37,16 @@ export async function convert(
   if (!handler) {
     return {
       success: false,
-      error: `No handler found for converting ${from.toUpperCase()} to ${to.toUpperCase()}.`,
+      error: `No conversion available from ${from.toUpperCase()} to ${to.toUpperCase()}.`,
     };
   }
 
   try {
     await ensureHandler(handler);
+    if (handler.name === "audio" || handler.name === "video") {
+      const { getFFmpeg } = await import("../utils/ffmpegLoader");
+      await getFFmpeg(onProgress);
+    }
     const result = await handler.convert(file, to);
     return { success: true, file: result };
   } catch (err) {
@@ -51,21 +56,22 @@ export async function convert(
 }
 
 export function getSupportedOutputFormats(inputExtension: string): string[] {
-  const from = inputExtension.toLowerCase();
+  const from = normalizeExtension(inputExtension.toLowerCase());
   const supported: string[] = [];
-  for (const handler of HANDLERS) {
-    const allFormats = [
-      "jpg","png","webp","gif","bmp","tiff","avif","ico",
-      "mp3","wav","ogg","flac","aac","m4a","opus",
-      "mp4","webm","mov","avi","mkv",
-      "pdf","txt","md","html","rtf",
-      "json","csv","xml","yaml","toml",
-    ];
-    for (const to of allFormats) {
-      if (to !== from && handler.canConvert(from, to)) {
-        supported.push(to);
-      }
+
+  for (const to of ALL_FORMAT_EXTENSIONS) {
+    const normalizedTo = normalizeExtension(to);
+    if (normalizedTo === from) continue;
+    if (HANDLERS.some((handler) => handler.canConvert(from, normalizedTo))) {
+      supported.push(normalizedTo);
     }
   }
+
   return [...new Set(supported)];
+}
+
+export function getHandlerForConversion(from: string, to: string): ConversionHandler | undefined {
+  const f = normalizeExtension(from.toLowerCase());
+  const t = normalizeExtension(to.toLowerCase());
+  return HANDLERS.find((h) => h.canConvert(f, t));
 }

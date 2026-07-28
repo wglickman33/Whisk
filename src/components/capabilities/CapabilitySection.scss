@@ -1,0 +1,19 @@
+@use "../../styles/tokens" as *;
+
+.capability-section {
+  margin-block-end: $space-xl;
+
+  &__title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text);
+    margin: 0 0 $space-sm;
+  }
+
+  &__note {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin: 0 0 $space-md;
+    max-width: 42rem;
+  }
+}

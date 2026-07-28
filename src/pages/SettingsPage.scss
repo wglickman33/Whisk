@@ -1,0 +1,74 @@
+@use "../styles/tokens" as *;
+
+.settings-page {
+  max-width: 480px;
+
+  &__header {
+    margin-bottom: $space-xl;
+
+    h1 {
+      margin: 0 0 $space-sm;
+      font-size: 1.5rem;
+      color: var(--text);
+    }
+
+    p {
+      margin: 0;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+  }
+
+  &__hint {
+    color: var(--text-muted);
+    margin-bottom: $space-md;
+  }
+
+  &__btn {
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: $radius-md;
+    padding: $space-sm $space-lg;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:hover {
+      background: var(--accent-hover);
+    }
+  }
+
+  &__section {
+    margin-bottom: $space-xl;
+    padding: $space-lg;
+    border: 1px solid var(--border);
+    border-radius: $radius-md;
+    background: var(--bg-elevated);
+
+    h2 {
+      margin: 0 0 $space-md;
+      font-size: 1rem;
+      color: var(--text);
+    }
+  }
+
+  &__field {
+    display: flex;
+    flex-direction: column;
+    gap: $space-xs;
+
+    span {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    select {
+      padding: $space-sm $space-md;
+      border: 1px solid var(--border);
+      border-radius: $radius-sm;
+      background: var(--surface);
+      color: var(--text);
+      font: inherit;
+    }
+  }
+}

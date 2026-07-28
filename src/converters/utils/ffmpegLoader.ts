@@ -1,8 +1,12 @@
 import { FFmpeg } from "@ffmpeg/ffmpeg";
 import { fetchFile, toBlobURL } from "@ffmpeg/util";
+import workerUrl from "@ffmpeg/ffmpeg/worker?worker&url";
 
 let instance: FFmpeg | null = null;
 let loading: Promise<FFmpeg> | null = null;
+
+/** Self-hosted from public/ffmpeg/ (copied on postinstall from @ffmpeg/core). */
+const FFMPEG_CORE_BASE = `${import.meta.env.BASE_URL}ffmpeg`;
 
 export async function getFFmpeg(
   onProgress?: (progress: number) => void
@@ -17,11 +21,10 @@ export async function getFFmpeg(
       ffmpeg.on("progress", ({ progress }) => onProgress(progress));
     }
 
-    const baseURL = "https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm";
-
     await ffmpeg.load({
-      coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, "text/javascript"),
-      wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, "application/wasm"),
+      classWorkerURL: new URL(workerUrl, import.meta.url).toString(),
+      coreURL: await toBlobURL(`${FFMPEG_CORE_BASE}/ffmpeg-core.js`, "text/javascript"),
+      wasmURL: await toBlobURL(`${FFMPEG_CORE_BASE}/ffmpeg-core.wasm`, "application/wasm"),
     });
 
     instance = ffmpeg;

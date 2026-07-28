@@ -7,7 +7,11 @@ import {
   IconTools,
   IconRecipe,
   IconDocs,
+  IconCapabilities,
   IconShoppingList,
+  IconSettings,
+  IconShield,
+  IconInfo,
 } from "../ui/SidebarIcons";
 import "./IconSidebar.scss";
 
@@ -17,9 +21,15 @@ const mainNavItems = [
   { to: "/tools", label: "Tools", icon: IconTools },
   { to: "/recipes", label: "Recipes", icon: IconRecipe },
   { to: "/shopping-list", label: "Shopping list", icon: IconShoppingList },
+  { to: "/settings", label: "Settings", icon: IconSettings },
 ];
 
-const secondaryNavItems = [{ to: "/docs", label: "Documentation", icon: IconDocs }];
+const secondaryNavItems = [
+  { to: "/how-it-works", label: "How it works", icon: IconInfo },
+  { to: "/privacy", label: "Privacy", icon: IconShield },
+  { to: "/capabilities", label: "Capabilities", icon: IconCapabilities },
+  { to: "/docs", label: "Documentation", icon: IconDocs },
+];
 
 export function IconSidebar() {
   const { isMobileMenuOpen, toggleMobileMenu, closeMobileMenu } = useMenu();
