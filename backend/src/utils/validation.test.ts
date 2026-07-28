@@ -5,6 +5,8 @@ import {
   isValidUuid,
   validateRecipeBody,
   validateShoppingListItems,
+  validateShoppingListItemInput,
+  validateBulkShoppingListItems,
   validatePreferences,
   LIMITS,
 } from "./validation.js";
@@ -54,12 +56,12 @@ describe("validateRecipeBody", () => {
 describe("validateShoppingListItems", () => {
   it("accepts valid items", () => {
     expect(
-      validateShoppingListItems([{ name: "Milk", quantity: 2, unit: "cup" }])
+      validateShoppingListItems([{ name: "Milk", quantity: "2 cups" }])
     ).toBeNull();
   });
 
   it("rejects missing name", () => {
-    expect(validateShoppingListItems([{ quantity: 1 }])).toMatch(/name/i);
+    expect(validateShoppingListItems([{ quantity: "1 cup" }])).toMatch(/name/i);
   });
 
   it("rejects non-array", () => {
@@ -67,7 +69,7 @@ describe("validateShoppingListItems", () => {
   });
 
   it("rejects invalid quantity type", () => {
-    expect(validateShoppingListItems([{ name: "Eggs", quantity: "2" }])).toMatch(/number/i);
+    expect(validateShoppingListItems([{ name: "Eggs", quantity: 2 }])).toMatch(/string/i);
   });
 
   it("rejects over item limit", () => {
@@ -75,6 +77,28 @@ describe("validateShoppingListItems", () => {
       name: "Item",
     }));
     expect(validateShoppingListItems(items)).toMatch(/too many/i);
+  });
+});
+
+describe("validateShoppingListItemInput", () => {
+  it("accepts a valid item", () => {
+    expect(validateShoppingListItemInput({ name: "Milk", quantity: "1 cup" })).toBeNull();
+  });
+
+  it("rejects missing name", () => {
+    expect(validateShoppingListItemInput({ quantity: "1" })).toMatch(/name/i);
+  });
+});
+
+describe("validateBulkShoppingListItems", () => {
+  it("requires at least one item", () => {
+    expect(validateBulkShoppingListItems([])).toMatch(/at least one/i);
+  });
+
+  it("accepts valid bulk payload", () => {
+    expect(
+      validateBulkShoppingListItems([{ name: "Eggs" }, { name: "Milk", note: "whole" }])
+    ).toBeNull();
   });
 });
 

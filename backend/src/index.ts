@@ -5,10 +5,11 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { authRouter } from "./routes/auth.js";
 import { recipesRouter } from "./routes/recipes.js";
-import { shoppingListRouter } from "./routes/shoppingList.js";
+import { shoppingListsRouter } from "./routes/shoppingLists.js";
 import { meRouter } from "./routes/me.js";
 import { foldersRouter } from "./routes/folders.js";
 import { tagsRouter } from "./routes/tags.js";
+import { ingredientsRouter } from "./routes/ingredients.js";
 
 if (process.env.NODE_ENV === "production" && !process.env.JWT_SECRET) {
   console.error("FATAL: JWT_SECRET must be set in production.");
@@ -78,10 +79,11 @@ const apiLimiter = rateLimit({
 
 app.use("/api/auth", authLimiter, authRouter);
 app.use("/api/recipes", apiLimiter, recipesRouter);
-app.use("/api/shopping-list", apiLimiter, shoppingListRouter);
+app.use("/api/shopping-lists", apiLimiter, shoppingListsRouter);
 app.use("/api/me", apiLimiter, meRouter);
 app.use("/api/folders", apiLimiter, foldersRouter);
 app.use("/api/tags", apiLimiter, tagsRouter);
+app.use("/api/ingredients", apiLimiter, ingredientsRouter);
 
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });

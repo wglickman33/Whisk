@@ -1,50 +1,65 @@
-import { preferencesApi, shoppingListApi } from "../api/client";
-import { useShoppingListStore } from "../store/shoppingListStore";
+import { preferencesApi, shoppingListsApi } from "../api/client";
 import { useSettingsStore } from "../store/settingsStore";
+import { scaledIngredientToListItem } from "../utils/shoppingListUtils";
 
-/** Whether local guest items should upload on first sign-in. */
-export function shouldMigrateLocalShoppingList(
-  localCount: number,
-  serverCount: number
-): boolean {
-  return serverCount === 0 && localCount > 0;
+const LEGACY_STORAGE_KEY = "recipe-app-shopping-list";
+
+interface LegacyItem {
+  name: string;
+  quantity: number;
+  unit: string;
+  notes: string | null;
 }
 
-/** Pull server data after sign-in; migrate local shopping list if server is empty. */
-export async function syncUserDataFromServer(): Promise<void> {
-  const [prefs, serverList] = await Promise.all([
-    preferencesApi.get(),
-    shoppingListApi.get(),
-  ]);
+export function readLegacyLocalItems(): LegacyItem[] {
+  try {
+    const raw = localStorage.getItem(LEGACY_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as { state?: { items?: LegacyItem[] } };
+    return Array.isArray(parsed.state?.items) ? parsed.state.items : [];
+  } catch {
+    return [];
+  }
+}
 
+export function legacyItemToInput(item: LegacyItem) {
+  return scaledIngredientToListItem({
+    name: item.name,
+    quantity: item.quantity,
+    unit: item.unit,
+    notes: item.notes,
+  });
+}
+
+export function shouldMigrateLegacyShoppingList(
+  localCount: number,
+  serverListCount: number
+): boolean {
+  return serverListCount === 0 && localCount > 0;
+}
+
+/** Pull server preferences; migrate legacy local shopping list if the user has none. */
+export async function syncUserDataFromServer(): Promise<void> {
+  const prefs = await preferencesApi.get();
   const settings = useSettingsStore.getState();
   settings.applyFromServer(prefs.theme as "light" | "dark", prefs.defaultUnitCategory);
+  settings.markSynced();
 
-  const shopping = useShoppingListStore.getState();
-  const localItems = shopping.items;
+  const { lists } = await shoppingListsApi.list();
+  const legacyItems = readLegacyLocalItems();
 
-  if (shouldMigrateLocalShoppingList(localItems.length, serverList.items.length)) {
-    const migrated = await shoppingListApi.save(
-      localItems.map(({ name, quantity, unit, notes, sourceRecipeId, sourceRecipeTitle }) => ({
-        name,
-        quantity,
-        unit,
-        notes,
-        sourceRecipeId,
-        sourceRecipeTitle,
-      }))
-    );
-    shopping.replaceItems(migrated.items, { skipSave: true });
-  } else {
-    shopping.replaceItems(serverList.items, { skipSave: true });
+  if (shouldMigrateLegacyShoppingList(legacyItems.length, lists.length)) {
+    const { list } = await shoppingListsApi.create("Shopping list");
+    await shoppingListsApi.bulkAdd(list.id, legacyItems.map(legacyItemToInput));
+    localStorage.removeItem(LEGACY_STORAGE_KEY);
+    return;
   }
 
-  shopping.markSynced();
-  useSettingsStore.getState().markSynced();
+  if (legacyItems.length > 0) {
+    localStorage.removeItem(LEGACY_STORAGE_KEY);
+  }
 }
 
 export function clearUserSyncedState(): void {
-  const shopping = useShoppingListStore.getState();
-  shopping.resetSyncState();
-  shopping.replaceItems([], { skipSave: true });
+  useSettingsStore.getState().resetSyncState();
 }

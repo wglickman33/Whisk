@@ -145,25 +145,89 @@ export const recipesApi = {
     }),
 };
 
+export interface ShoppingListMember {
+  id: string;
+  name: string;
+  initial: string;
+}
+
+export interface ShoppingList {
+  id: string;
+  name: string;
+  ownerUserId: string;
+  isOwner: boolean;
+  shareCode?: string;
+  createdAt: string;
+  members: ShoppingListMember[];
+}
+
 export interface ShoppingListItem {
   id: string;
   name: string;
-  quantity: number;
-  unit: string;
-  notes: string | null;
-  sourceRecipeId?: string;
-  sourceRecipeTitle?: string;
+  category?: string;
+  quantity?: string;
+  note?: string;
+  checked: boolean;
+  addedByUserId: string;
+  addedByName: string;
+  createdAt: string;
 }
 
-export type ShoppingListItemInput = Omit<ShoppingListItem, "id">;
+export interface ShoppingListItemInput {
+  name: string;
+  category?: string | null;
+  quantity?: string | null;
+  note?: string | null;
+}
 
-export const shoppingListApi = {
-  get: () => api<{ items: ShoppingListItem[] }>("/api/shopping-list"),
-  save: (items: ShoppingListItemInput[]) =>
-    api<{ items: ShoppingListItem[] }>("/api/shopping-list", {
-      method: "PUT",
+export const shoppingListsApi = {
+  list: () => api<{ lists: ShoppingList[] }>("/api/shopping-lists"),
+  create: (name: string) =>
+    api<{ list: ShoppingList }>("/api/shopping-lists", {
+      method: "POST",
+      body: JSON.stringify({ name }),
+    }),
+  getItems: (listId: string) =>
+    api<{ items: ShoppingListItem[] }>(`/api/shopping-lists/${listId}/items`),
+  addItem: (listId: string, item: ShoppingListItemInput) =>
+    api<{ item: ShoppingListItem }>(`/api/shopping-lists/${listId}/items`, {
+      method: "POST",
+      body: JSON.stringify(item),
+    }),
+  bulkAdd: (listId: string, items: ShoppingListItemInput[]) =>
+    api<{ items: ShoppingListItem[] }>(`/api/shopping-lists/${listId}/items/bulk`, {
+      method: "POST",
       body: JSON.stringify({ items }),
     }),
+  updateItem: (
+    listId: string,
+    itemId: string,
+    patch: Partial<Pick<ShoppingListItem, "name" | "category" | "quantity" | "note" | "checked">>
+  ) =>
+    api<{ item: ShoppingListItem }>(`/api/shopping-lists/${listId}/items/${itemId}`, {
+      method: "PATCH",
+      body: JSON.stringify(patch),
+    }),
+  deleteItem: (listId: string, itemId: string) =>
+    api<void>(`/api/shopping-lists/${listId}/items/${itemId}`, { method: "DELETE" }),
+  clearChecked: (listId: string) =>
+    api<void>(`/api/shopping-lists/${listId}/items/checked`, { method: "DELETE" }),
+  generateShareCode: (listId: string) =>
+    api<{ code: string }>(`/api/shopping-lists/${listId}/share-code`, { method: "POST" }),
+  join: (code: string) =>
+    api<{ list: ShoppingList }>("/api/shopping-lists/join", {
+      method: "POST",
+      body: JSON.stringify({ code }),
+    }),
+  update: (listId: string, name: string) =>
+    api<{ list: ShoppingList }>(`/api/shopping-lists/${listId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ name }),
+    }),
+  delete: (listId: string) =>
+    api<void>(`/api/shopping-lists/${listId}`, { method: "DELETE" }),
+  leave: (listId: string) =>
+    api<void>(`/api/shopping-lists/${listId}/leave`, { method: "POST" }),
 };
 
 export const preferencesApi = {
@@ -210,4 +274,14 @@ export const tagsApi = {
       method: "PUT",
       body: JSON.stringify({ tagIds }),
     }),
+};
+
+export const substitutesApi = {
+  get: async (ingredientName: string): Promise<string[]> => {
+    const params = new URLSearchParams({ name: ingredientName });
+    const data = await api<{ substitutes: string[] }>(
+      `/api/ingredients/substitutes?${params.toString()}`
+    );
+    return Array.isArray(data.substitutes) ? data.substitutes : [];
+  },
 };

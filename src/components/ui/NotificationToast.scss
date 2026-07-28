@@ -110,7 +110,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color $transition-base;
+  transition: color $transition-base ease, background-color $transition-base ease, opacity $transition-base ease;
 
   &:hover {
     color: var(--text);

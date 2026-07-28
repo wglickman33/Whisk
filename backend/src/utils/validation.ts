@@ -16,6 +16,10 @@ export const LIMITS = {
   sourceUrlMax: 2048,
   shoppingListMaxItems: 500,
   shoppingItemNameMax: 200,
+  shoppingListNameMax: 100,
+  shoppingCategoryMax: 100,
+  shoppingQuantityMax: 100,
+  shoppingNoteMax: 500,
   folderNameMax: 100,
   tagLabelMax: 50,
 } as const;
@@ -70,11 +74,32 @@ export function validateShoppingListItems(items: unknown): string | null {
     return `Too many items (max ${LIMITS.shoppingListMaxItems}).`;
   }
   for (const item of items) {
-    if (!item || typeof item !== "object") return "Each item must be an object.";
-    const row = item as Record<string, unknown>;
-    if (typeof row.name !== "string" || !row.name.trim()) return "Each item needs a name.";
-    if (row.name.length > LIMITS.shoppingItemNameMax) return "Item name is too long.";
-    if (row.quantity != null && typeof row.quantity !== "number") return "Quantity must be a number.";
+    const error = validateShoppingListItemInput(item);
+    if (error) return error;
+  }
+  return null;
+}
+
+export function validateShoppingListItemInput(item: unknown): string | null {
+  if (!item || typeof item !== "object") return "Each item must be an object.";
+  const row = item as Record<string, unknown>;
+  if (typeof row.name !== "string" || !row.name.trim()) return "Each item needs a name.";
+  if (row.name.length > LIMITS.shoppingItemNameMax) return "Item name is too long.";
+  if (row.category != null && typeof row.category !== "string") return "Category must be a string.";
+  if (row.quantity != null && typeof row.quantity !== "string") return "Quantity must be a string.";
+  if (row.note != null && typeof row.note !== "string") return "Note must be a string.";
+  return null;
+}
+
+export function validateBulkShoppingListItems(items: unknown): string | null {
+  if (!Array.isArray(items)) return "Items must be an array.";
+  if (items.length === 0) return "At least one item is required.";
+  if (items.length > LIMITS.shoppingListMaxItems) {
+    return `Too many items (max ${LIMITS.shoppingListMaxItems}).`;
+  }
+  for (const item of items) {
+    const error = validateShoppingListItemInput(item);
+    if (error) return error;
   }
   return null;
 }

@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { authApi, type AuthUser } from "../api/client";
 import { syncUserDataFromServer, clearUserSyncedState } from "../services/userSync";
+import { clearStoredListId } from "../utils/shoppingListUtils";
 import { useSettingsStore } from "./settingsStore";
 
 const TOKEN_KEY = "whisk_token";
@@ -34,6 +35,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   signOut: () => {
     localStorage.removeItem(TOKEN_KEY);
+    clearStoredListId();
     clearUserSyncedState();
     useSettingsStore.getState().resetSyncState();
     set({ user: null, isSignedIn: false });

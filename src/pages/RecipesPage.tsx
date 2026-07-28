@@ -1,18 +1,23 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useAuthStore } from "../store/authStore";
 import { useAuthModalStore } from "../store/authModalStore";
 import {
   recipesApi,
   foldersApi,
   tagsApi,
+  shoppingListsApi,
   type Recipe,
   type RecipeInput,
   type FolderSummary,
   type Tag,
+  type ShoppingList,
+  type ShoppingListItemInput,
 } from "../api/client";
-import { useShoppingListStore } from "../store/shoppingListStore";
 import { toastSuccess, toastError } from "../store/toastStore";
 import { filterRecipes } from "../utils/filterRecipes";
+import { scaledIngredientToListItem } from "../utils/shoppingListUtils";
+import { bulkAddToList, prepareAddToShoppingList } from "../utils/shoppingListActions";
+import { ListPickerModal } from "../components/shopping/ListPickerModal";
 import { IconRecipe } from "../components/ui/SidebarIcons";
 import { RecipeView } from "../components/recipes/RecipeView";
 import "./RecipesPage.scss";
@@ -32,6 +37,13 @@ export function RecipesPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewingId, setViewingId] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [folderModalOpen, setFolderModalOpen] = useState(false);
+  const [folderName, setFolderName] = useState("");
+  const [folderSaving, setFolderSaving] = useState(false);
+  const [listPickerOpen, setListPickerOpen] = useState(false);
+  const [listPickerLists, setListPickerLists] = useState<ShoppingList[]>([]);
+  const [listPickerItems, setListPickerItems] = useState<ShoppingListItemInput[]>([]);
+  const [listPickerSaving, setListPickerSaving] = useState(false);
 
   const fetchRecipes = useCallback(async () => {
     if (!isSignedIn) return;
@@ -61,6 +73,22 @@ export function RecipesPage() {
     [recipes, search, folderFilter]
   );
 
+  const addIngredientsToShoppingList = useCallback(async (items: ShoppingListItemInput[]) => {
+    try {
+      const result = await prepareAddToShoppingList(items);
+      if (result.status === "empty") return;
+      if (result.status === "added") {
+        toastSuccess(`Added to "${result.listName}".`);
+        return;
+      }
+      setListPickerLists(result.lists);
+      setListPickerItems(result.items);
+      setListPickerOpen(true);
+    } catch (err) {
+      toastError(err instanceof Error ? err.message : "Failed to add to shopping list.");
+    }
+  }, []);
+
   const handleImport = async (e: React.FormEvent) => {
     e.preventDefault();
     const url = importUrl.trim();
@@ -78,16 +106,33 @@ export function RecipesPage() {
     }
   };
 
-  const handleNewFolder = async () => {
-    const name = window.prompt("Folder name");
-    if (!name?.trim()) return;
+  const handleCreateFolder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const name = folderName.trim();
+    if (!name) return;
+    setFolderSaving(true);
     try {
-      const folder = await foldersApi.create(name.trim());
+      const folder = await foldersApi.create(name);
       setFolders((prev) => [...prev, folder].sort((a, b) => a.name.localeCompare(b.name)));
+      setFolderModalOpen(false);
+      setFolderName("");
       toastSuccess("Folder created.");
     } catch (err) {
       toastError(err instanceof Error ? err.message : "Could not create folder.");
+    } finally {
+      setFolderSaving(false);
     }
+  };
+
+  const openFolderModal = () => {
+    setFolderName("");
+    setFolderModalOpen(true);
+  };
+
+  const closeFolderModal = () => {
+    if (folderSaving) return;
+    setFolderModalOpen(false);
+    setFolderName("");
   };
 
   if (!isSignedIn) {
@@ -150,7 +195,7 @@ export function RecipesPage() {
             </option>
           ))}
         </select>
-        <button type="button" className="recipes-page__folder-btn" onClick={handleNewFolder}>
+        <button type="button" className="recipes-page__folder-btn" onClick={openFolderModal}>
           + Folder
         </button>
       </div>
@@ -275,30 +320,73 @@ export function RecipesPage() {
               setFormOpen(true);
             }}
             onAddAllToList={(currentServings) => {
-              useShoppingListStore.getState().addRecipe(
-                {
-                  id: recipe.id,
-                  title: recipe.title,
-                  servings: recipe.servings,
-                  ingredients: recipe.ingredients,
-                },
-                currentServings
+              const scale = recipe.servings > 0 ? currentServings / recipe.servings : 1;
+              const items = recipe.ingredients.map((ing) =>
+                scaledIngredientToListItem({
+                  name: ing.name,
+                  quantity: ing.quantity * scale,
+                  unit: ing.unit,
+                  notes: ing.notes,
+                })
               );
-              toastSuccess("Added to shopping list.");
+              void addIngredientsToShoppingList(items);
             }}
             onAddSelectedToList={(items) => {
-              useShoppingListStore.getState().addItems(
-                items.map((item) => ({
-                  ...item,
-                  sourceRecipeId: recipe.id,
-                  sourceRecipeTitle: recipe.title,
-                }))
-              );
-              toastSuccess("Added to shopping list.");
+              void addIngredientsToShoppingList(items.map(scaledIngredientToListItem));
             }}
           />
         );
       })()}
+
+      {folderModalOpen && (
+        <NamePromptModal
+          id="folder-prompt"
+          title="New folder"
+          label="Folder name"
+          placeholder="e.g. Weeknight dinners"
+          submitLabel="Create folder"
+          value={folderName}
+          onChange={setFolderName}
+          onClose={closeFolderModal}
+          onSubmit={handleCreateFolder}
+          saving={folderSaving}
+        />
+      )}
+
+      {listPickerOpen && (
+        <ListPickerModal
+          lists={listPickerLists}
+          saving={listPickerSaving}
+          onClose={() => setListPickerOpen(false)}
+          onSelect={(listId) => {
+            setListPickerSaving(true);
+            void bulkAddToList(listId, listPickerItems)
+              .then(() => {
+                const chosen = listPickerLists.find((l) => l.id === listId);
+                toastSuccess(`Added to "${chosen?.name ?? "list"}".`);
+                setListPickerOpen(false);
+              })
+              .catch((err) => {
+                toastError(err instanceof Error ? err.message : "Failed to add items.");
+              })
+              .finally(() => setListPickerSaving(false));
+          }}
+          onCreate={() => {
+            setListPickerSaving(true);
+            void shoppingListsApi
+              .create("Shopping list")
+              .then(({ list }) => bulkAddToList(list.id, listPickerItems).then(() => list))
+              .then((list) => {
+                toastSuccess(`Added to "${list.name}".`);
+                setListPickerOpen(false);
+              })
+              .catch((err) => {
+                toastError(err instanceof Error ? err.message : "Failed to add items.");
+              })
+              .finally(() => setListPickerSaving(false));
+          }}
+        />
+      )}
 
       {deleteConfirm && (() => {
         const recipe = recipes.find((r) => r.id === deleteConfirm);
@@ -381,6 +469,9 @@ function RecipeForm({ recipe, folders, allTags, onClose, onSaved, onTagsChanged 
       : [{ instruction: "", timerMinutes: null as number | null }]
   );
   const [saving, setSaving] = useState(false);
+  const [tagModalOpen, setTagModalOpen] = useState(false);
+  const [tagName, setTagName] = useState("");
+  const [tagSaving, setTagSaving] = useState(false);
 
   const toggleTag = (tagId: string) => {
     setSelectedTagIds((prev) =>
@@ -388,16 +479,33 @@ function RecipeForm({ recipe, folders, allTags, onClose, onSaved, onTagsChanged 
     );
   };
 
-  const handleNewTag = async () => {
-    const label = window.prompt("Tag name");
-    if (!label?.trim()) return;
+  const handleCreateTag = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const label = tagName.trim();
+    if (!label) return;
+    setTagSaving(true);
     try {
-      const tag = await tagsApi.create(label.trim());
+      const tag = await tagsApi.create(label);
       onTagsChanged([...allTags, tag].sort((a, b) => a.label.localeCompare(b.label)));
       setSelectedTagIds((prev) => [...prev, tag.id]);
+      setTagModalOpen(false);
+      setTagName("");
     } catch (err) {
       toastError(err instanceof Error ? err.message : "Could not create tag.");
+    } finally {
+      setTagSaving(false);
     }
+  };
+
+  const openTagModal = () => {
+    setTagName("");
+    setTagModalOpen(true);
+  };
+
+  const closeTagModal = () => {
+    if (tagSaving) return;
+    setTagModalOpen(false);
+    setTagName("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -425,10 +533,13 @@ function RecipeForm({ recipe, folders, allTags, onClose, onSaved, onTagsChanged 
           })),
         steps: steps
           .filter((s) => s.instruction.trim())
-          .map((s) => ({
-            instruction: s.instruction.trim(),
-            timerMinutes: s.timerMinutes != null ? Number(s.timerMinutes) : null,
-          })),
+          .map((s) => {
+            const mins = s.timerMinutes != null ? Number(s.timerMinutes) : null;
+            return {
+              instruction: s.instruction.trim(),
+              timerMinutes: mins != null && mins > 0 ? mins : null,
+            };
+          }),
       };
 
       let saved: Recipe;
@@ -449,22 +560,30 @@ function RecipeForm({ recipe, folders, allTags, onClose, onSaved, onTagsChanged 
   };
 
   return (
-    <div className="recipes-form-overlay" onClick={onClose}>
+    <div
+      className="recipes-form-overlay"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="recipe-form-title"
+    >
       <div className="recipes-form" onClick={(e) => e.stopPropagation()}>
         <div className="recipes-form__header">
-          <h2>{recipe ? "Edit Recipe" : "New Recipe"}</h2>
+          <h2 id="recipe-form-title">{recipe ? "Edit Recipe" : "New Recipe"}</h2>
           <button type="button" className="recipes-form__close" onClick={onClose} aria-label="Close">
             <span className="recipes-form__close-icon" aria-hidden>&times;</span>
           </button>
         </div>
-        <form className="recipes-form__body" onSubmit={handleSubmit}>
+        <form className="recipes-form__form" onSubmit={handleSubmit}>
+          <div className="recipes-form__body">
+          <div className="recipes-form__section recipes-form__section--basics">
           <label className="recipes-form__field">
             <span>Title *</span>
             <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} required />
           </label>
           <label className="recipes-form__field">
             <span>Description</span>
-            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} style={{ resize: "none" }} />
+            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} placeholder="A short summary (optional)" />
           </label>
           <div className="recipes-form__row">
             <label className="recipes-form__field">
@@ -487,6 +606,8 @@ function RecipeForm({ recipe, folders, allTags, onClose, onSaved, onTagsChanged 
               ))}
             </select>
           </label>
+          </div>
+
           <div className="recipes-form__section">
             <h3>Tags</h3>
             <div className="recipes-form__tags">
@@ -500,7 +621,7 @@ function RecipeForm({ recipe, folders, allTags, onClose, onSaved, onTagsChanged 
                   {tag.label}
                 </button>
               ))}
-              <button type="button" className="recipes-form__add" onClick={handleNewTag}>
+              <button type="button" className="recipes-form__add" onClick={openTagModal}>
                 + Tag
               </button>
             </div>
@@ -513,7 +634,9 @@ function RecipeForm({ recipe, folders, allTags, onClose, onSaved, onTagsChanged 
                 <input type="text" placeholder="Name" value={ing.name} onChange={(e) => setIngredients((prev) => { const n = [...prev]; n[i] = { ...n[i], name: e.target.value }; return n; })} />
                 <input type="number" placeholder="Qty" min={0} step={0.25} value={ing.quantity || ""} onChange={(e) => setIngredients((prev) => { const n = [...prev]; n[i] = { ...n[i], quantity: e.target.value ? Number(e.target.value) : 0 }; return n; })} />
                 <input type="text" placeholder="Unit" value={ing.unit} onChange={(e) => setIngredients((prev) => { const n = [...prev]; n[i] = { ...n[i], unit: e.target.value }; return n; })} />
-                <button type="button" onClick={() => setIngredients((prev) => prev.filter((_, idx) => idx !== i))} aria-label="Remove ingredient">&times;</button>
+                <button type="button" className="recipes-form__row-remove" onClick={() => setIngredients((prev) => prev.filter((_, idx) => idx !== i))} aria-label="Remove ingredient">
+                  <span aria-hidden>&times;</span>
+                </button>
               </div>
             ))}
             <button type="button" className="recipes-form__add" onClick={() => setIngredients((prev) => [...prev, { name: "", quantity: 0, unit: "", notes: "", isOptional: false }])}>
@@ -523,21 +646,156 @@ function RecipeForm({ recipe, folders, allTags, onClose, onSaved, onTagsChanged 
 
           <div className="recipes-form__section">
             <h3>Steps</h3>
+            <p className="recipes-form__section-hint">Timer is optional. Leave blank for steps without a countdown.</p>
             {steps.map((step, i) => (
               <div key={i} className="recipes-form__step">
-                <span className="recipes-form__step-num">{i + 1}.</span>
-                <textarea placeholder="Instruction" value={step.instruction} onChange={(e) => setSteps((prev) => { const n = [...prev]; n[i] = { ...n[i], instruction: e.target.value }; return n; })} rows={2} style={{ resize: "none" }} />
-                <button type="button" onClick={() => setSteps((prev) => prev.filter((_, idx) => idx !== i))} aria-label="Remove step">&times;</button>
+                <span className="recipes-form__step-num" aria-hidden>{i + 1}</span>
+                <textarea
+                  className="recipes-form__step-instruction"
+                  placeholder="Instruction"
+                  value={step.instruction}
+                  onChange={(e) => setSteps((prev) => { const n = [...prev]; n[i] = { ...n[i], instruction: e.target.value }; return n; })}
+                  rows={2}
+                />
+                <input
+                  type="number"
+                  className="recipes-form__step-timer-input"
+                  placeholder="min"
+                  min={0}
+                  step={0.5}
+                  value={step.timerMinutes ?? ""}
+                  onChange={(e) =>
+                    setSteps((prev) => {
+                      const n = [...prev];
+                      const raw = e.target.value;
+                      if (raw === "") {
+                        n[i] = { ...n[i], timerMinutes: null };
+                      } else {
+                        const parsed = Number(raw);
+                        n[i] = {
+                          ...n[i],
+                          timerMinutes: Number.isFinite(parsed) && parsed > 0 ? parsed : null,
+                        };
+                      }
+                      return n;
+                    })
+                  }
+                  aria-label={`Step ${i + 1} timer in minutes (optional)`}
+                />
+                <button type="button" className="recipes-form__row-remove" onClick={() => setSteps((prev) => prev.filter((_, idx) => idx !== i))} aria-label="Remove step">
+                  <span aria-hidden>&times;</span>
+                </button>
               </div>
             ))}
             <button type="button" className="recipes-form__add" onClick={() => setSteps((prev) => [...prev, { instruction: "", timerMinutes: null }])}>
               + Step
             </button>
           </div>
+          </div>
 
           <div className="recipes-form__actions">
             <button type="button" className="recipes-form__cancel" onClick={onClose}>Cancel</button>
             <button type="submit" className="recipes-form__save" disabled={saving}>{saving ? "Saving…" : "Save"}</button>
+          </div>
+        </form>
+      </div>
+
+      {tagModalOpen && (
+        <NamePromptModal
+          id="tag-prompt"
+          title="New tag"
+          label="Tag name"
+          placeholder="e.g. Vegetarian"
+          submitLabel="Create tag"
+          value={tagName}
+          onChange={setTagName}
+          onClose={closeTagModal}
+          onSubmit={handleCreateTag}
+          saving={tagSaving}
+        />
+      )}
+    </div>
+  );
+}
+
+interface NamePromptModalProps {
+  id: string;
+  title: string;
+  label: string;
+  placeholder?: string;
+  submitLabel?: string;
+  value: string;
+  onChange: (value: string) => void;
+  onClose: () => void;
+  onSubmit: (e: React.FormEvent) => void;
+  saving: boolean;
+}
+
+function NamePromptModal({
+  id,
+  title,
+  label,
+  placeholder,
+  submitLabel = "Create",
+  value,
+  onChange,
+  onClose,
+  onSubmit,
+  saving,
+}: NamePromptModalProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const titleId = `${id}-title`;
+
+  useEffect(() => {
+    inputRef.current?.focus();
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !saving) onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose, saving]);
+
+  return (
+    <div
+      className="recipes-form-overlay"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={titleId}
+    >
+      <div
+        className="recipes-form recipes-form--confirm recipes-form--prompt"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="recipes-form__header">
+          <h2 id={titleId}>{title}</h2>
+          <button type="button" className="recipes-form__close" onClick={onClose} aria-label="Close" disabled={saving}>
+            <span className="recipes-form__close-icon" aria-hidden>&times;</span>
+          </button>
+        </div>
+        <form onSubmit={onSubmit}>
+          <div className="recipes-form__body recipes-form__body--prompt">
+            <label className="recipes-form__field">
+              <span>{label}</span>
+              <input
+                ref={inputRef}
+                type="text"
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                placeholder={placeholder}
+                required
+                disabled={saving}
+                autoComplete="off"
+              />
+            </label>
+          </div>
+          <div className="recipes-form__actions recipes-form__actions--footer">
+            <button type="button" className="recipes-form__cancel" onClick={onClose} disabled={saving}>
+              Cancel
+            </button>
+            <button type="submit" className="recipes-form__save" disabled={saving || !value.trim()}>
+              {saving ? "Creating…" : submitLabel}
+            </button>
           </div>
         </form>
       </div>

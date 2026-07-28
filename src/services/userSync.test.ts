@@ -1,16 +1,48 @@
-import { describe, it, expect } from "vitest";
-import { shouldMigrateLocalShoppingList } from "./userSync";
+import { describe, it, expect, beforeEach } from "vitest";
+import {
+  readLegacyLocalItems,
+  legacyItemToInput,
+  shouldMigrateLegacyShoppingList,
+} from "./userSync";
 
-describe("shouldMigrateLocalShoppingList", () => {
-  it("migrates when server is empty and local has items", () => {
-    expect(shouldMigrateLocalShoppingList(3, 0)).toBe(true);
+describe("readLegacyLocalItems", () => {
+  beforeEach(() => {
+    localStorage.clear();
   });
 
-  it("uses server data when server already has items", () => {
-    expect(shouldMigrateLocalShoppingList(3, 2)).toBe(false);
+  it("returns items from persisted zustand storage", () => {
+    localStorage.setItem(
+      "recipe-app-shopping-list",
+      JSON.stringify({ state: { items: [{ name: "Milk", quantity: 2, unit: "cup", notes: null }] } })
+    );
+    expect(readLegacyLocalItems()).toHaveLength(1);
   });
 
-  it("does nothing special when both are empty", () => {
-    expect(shouldMigrateLocalShoppingList(0, 0)).toBe(false);
+  it("returns empty array for invalid storage", () => {
+    localStorage.setItem("recipe-app-shopping-list", "not-json");
+    expect(readLegacyLocalItems()).toEqual([]);
+  });
+});
+
+describe("legacyItemToInput", () => {
+  it("converts legacy numeric quantity to string quantity", () => {
+    expect(
+      legacyItemToInput({ name: "Eggs", quantity: 6, unit: "", notes: null })
+    ).toEqual({
+      name: "Eggs",
+      quantity: "6",
+      note: null,
+      category: null,
+    });
+  });
+});
+
+describe("shouldMigrateLegacyShoppingList", () => {
+  it("migrates when server has no lists and legacy has items", () => {
+    expect(shouldMigrateLegacyShoppingList(2, 0)).toBe(true);
+  });
+
+  it("does not migrate when server already has lists", () => {
+    expect(shouldMigrateLegacyShoppingList(2, 1)).toBe(false);
   });
 });

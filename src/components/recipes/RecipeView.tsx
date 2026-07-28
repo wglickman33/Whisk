@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { Recipe, Ingredient } from "../../api/client";
+import { substitutesApi } from "../../api/client";
 import { formatQuantity } from "../../utils/formatQuantity";
+import { resolveSubstitutes } from "../../utils/resolveSubstitutes";
+import { useWakeLock } from "../../hooks/useWakeLock";
 import "./RecipeView.scss";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -16,6 +19,14 @@ function formatTime(seconds: number): string {
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
+function formatTimerMinutes(minutes: number): string {
+  if (minutes < 1 && minutes > 0) {
+    const secs = Math.round(minutes * 60);
+    return secs === 60 ? "1m" : `${secs}s`;
+  }
+  return Number.isInteger(minutes) ? `${minutes}m` : `${minutes}m`;
+}
+
 // ─── StepTimer ──────────────────────────────────────────────────────────────
 
 interface StepTimerProps {
@@ -23,7 +34,7 @@ interface StepTimerProps {
 }
 
 function StepTimer({ minutes }: StepTimerProps) {
-  const totalSeconds = minutes * 60;
+  const totalSeconds = Math.round(minutes * 60);
   const [remaining, setRemaining] = useState(totalSeconds);
   const [running, setRunning] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -89,7 +100,7 @@ function StepTimer({ minutes }: StepTimerProps) {
                 onClick={start}
                 aria-label="Start timer"
               >
-                {remaining < totalSeconds ? "Resume" : `Start ${minutes}m`}
+                {remaining < totalSeconds ? "Resume" : `Start ${formatTimerMinutes(minutes)}`}
               </button>
             ))}
           {(remaining < totalSeconds || done) && (
@@ -148,6 +159,12 @@ export interface RecipeViewProps {
 
 type RecipeWithOptionalImage = Recipe & { imageUrl?: string | null };
 
+type SubstituteCacheEntry = {
+  substitutes: string[];
+  index: number;
+  noSubstitute: boolean;
+};
+
 export function RecipeView({
   recipe,
   onClose,
@@ -156,40 +173,90 @@ export function RecipeView({
   onAddSelectedToList,
 }: RecipeViewProps) {
   const r = recipe as RecipeWithOptionalImage;
+  const wakeLock = useWakeLock();
   const [servings, setServings] = useState(recipe.servings);
-  const [plainText, setPlainText] = useState(false);
-  const [fitToScreen, setFitToScreen] = useState(false);
   const [selectedIngIds, setSelectedIngIds] = useState<Set<string>>(new Set());
   const [completedStepIds, setCompletedStepIds] = useState<Set<string>>(new Set());
+  const [subPanelOpen, setSubPanelOpen] = useState<Set<string>>(new Set());
+  const [subCache, setSubCache] = useState<Map<string, SubstituteCacheEntry>>(new Map());
+  const [subLoading, setSubLoading] = useState<Set<string>>(new Set());
+  const subCacheRef = useRef(subCache);
+  subCacheRef.current = subCache;
+  const subFetchInFlightRef = useRef<Map<string, Promise<void>>>(new Map());
 
-  const contentRef = useRef<HTMLDivElement>(null);
-  const wrapperRef = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(1);
-  const [contentHeight, setContentHeight] = useState(0);
+  const loadSubstitutes = useCallback(async (ingKey: string, ingName: string) => {
+    if (subCacheRef.current.has(ingKey)) return;
+
+    const inflight = subFetchInFlightRef.current.get(ingKey);
+    if (inflight) return inflight;
+
+    const run = (async () => {
+      setSubLoading((prev) => new Set(prev).add(ingKey));
+      try {
+        const result = await resolveSubstitutes(ingName, substitutesApi.get);
+        setSubCache((prev) =>
+          new Map(prev).set(ingKey, {
+            substitutes: result.substitutes,
+            index: 0,
+            noSubstitute: result.noSubstitute,
+          })
+        );
+      } finally {
+        setSubLoading((prev) => {
+          const next = new Set(prev);
+          next.delete(ingKey);
+          return next;
+        });
+        subFetchInFlightRef.current.delete(ingKey);
+      }
+    })();
+
+    subFetchInFlightRef.current.set(ingKey, run);
+    return run;
+  }, []);
+
+  const toggleSubPanel = useCallback(
+    (ingKey: string, ingName: string) => {
+      let opening = false;
+      setSubPanelOpen((prev) => {
+        const next = new Set(prev);
+        if (next.has(ingKey)) {
+          next.delete(ingKey);
+        } else {
+          next.add(ingKey);
+          opening = true;
+        }
+        return next;
+      });
+      if (opening && !subCacheRef.current.has(ingKey)) {
+        void loadSubstitutes(ingKey, ingName);
+      }
+    },
+    [loadSubstitutes]
+  );
+
+  const cycleSubstitute = useCallback((ingKey: string) => {
+    setSubCache((prev) => {
+      const entry = prev.get(ingKey);
+      if (!entry || entry.substitutes.length <= 1) return prev;
+      const next = new Map(prev);
+      next.set(ingKey, {
+        ...entry,
+        index: (entry.index + 1) % entry.substitutes.length,
+      });
+      return next;
+    });
+  }, []);
 
   const originalServings = recipe.servings;
   const scaleFactor = originalServings > 0 ? servings / originalServings : 1;
+  const showServingUnit =
+    recipe.servingUnit.trim() &&
+    recipe.servingUnit.toLowerCase() !== "servings";
 
-  useEffect(() => {
-    if (!fitToScreen || !contentRef.current || !wrapperRef.current) {
-      setScale(1);
-      return;
-    }
-    const update = () => {
-      const wrapper = wrapperRef.current;
-      const content = contentRef.current;
-      if (!wrapper || !content) return;
-      const viewH = wrapper.clientHeight;
-      const H = content.scrollHeight;
-      setContentHeight(H);
-      if (H <= 0) return;
-      setScale(Math.max(0.35, Math.min(1, (viewH - 16) / H)));
-    };
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(wrapperRef.current);
-    return () => ro.disconnect();
-  }, [fitToScreen, recipe.id, servings, plainText]);
+  const handleClose = useCallback(() => {
+    void wakeLock.release().finally(onClose);
+  }, [onClose, wakeLock]);
 
   const scaledIngredients = recipe.ingredients
     .slice()
@@ -221,6 +288,8 @@ export function RecipeView({
   const selectAllIngredients = () =>
     setSelectedIngIds(new Set(scaledIngredients.map((ing) => ing.id)));
 
+  const deselectAllIngredients = () => setSelectedIngIds(new Set());
+
   const handleAddAllToList = () => onAddAllToList?.(servings);
 
   const handleAddSelectedToList = () => {
@@ -236,19 +305,21 @@ export function RecipeView({
   };
 
   const selectedCount = selectedIngIds.size;
-  const canAddSelected = onAddSelectedToList && selectedCount > 0;
+  const allIngredientsSelected =
+    scaledIngredients.length > 0 && selectedCount === scaledIngredients.length;
   const canAddAll = onAddAllToList && scaledIngredients.length > 0;
+  const hasShoppingList = Boolean(onAddAllToList || onAddSelectedToList);
 
   const completedCount = completedStepIds.size;
   const totalSteps = sortedSteps.length;
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") handleClose();
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
+  }, [handleClose]);
 
   useEffect(() => {
     const prev = document.body.style.overflow;
@@ -258,37 +329,51 @@ export function RecipeView({
     };
   }, []);
 
+  const handleEdit = () => {
+    void wakeLock.release().finally(onEdit);
+  };
+
   return (
     <div
       className="recipe-view-overlay"
-      onClick={onClose}
+      onClick={handleClose}
       role="dialog"
       aria-modal="true"
       aria-labelledby="recipe-view-title"
     >
-      <div
-        className={`recipe-view ${plainText ? "recipe-view--plain" : ""} ${fitToScreen ? "recipe-view--fit" : ""}`}
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="recipe-view" onClick={(e) => e.stopPropagation()}>
         <header className="recipe-view__header">
           <h1 id="recipe-view-title" className="recipe-view__title">
             {recipe.title}
           </h1>
-          <div className="recipe-view__header-actions">
-            <button
-              type="button"
-              className="recipe-view__close"
-              onClick={onClose}
-              aria-label="Close"
-            >
-              <span aria-hidden>×</span>
-            </button>
-          </div>
+          <button
+            type="button"
+            className="recipe-view__close"
+            onClick={handleClose}
+            aria-label="Close"
+          >
+            <span className="recipe-view__close-icon" aria-hidden>×</span>
+          </button>
         </header>
+
+        {(recipe.folder || (recipe.tags && recipe.tags.length > 0)) && (
+          <div className="recipe-view__chips">
+            {recipe.folder && (
+              <span className="recipe-view__chip recipe-view__chip--folder">
+                {recipe.folder.name}
+              </span>
+            )}
+            {recipe.tags?.map(({ tag }) => (
+              <span key={tag.id} className="recipe-view__chip">
+                {tag.label}
+              </span>
+            ))}
+          </div>
+        )}
 
         <div className="recipe-view__toolbar">
           <div className="recipe-view__servings">
-            <label htmlFor="recipe-view-servings">Servings</label>
+            <span className="recipe-view__servings-label">Servings</span>
             <div className="recipe-view__servings-controls">
               <button
                 type="button"
@@ -308,6 +393,7 @@ export function RecipeView({
                   setServings(Math.max(0.5, Number(e.target.value) || 0.5))
                 }
                 className="recipe-view__servings-input"
+                aria-label="Number of servings"
               />
               <button
                 type="button"
@@ -318,246 +404,285 @@ export function RecipeView({
                 +
               </button>
             </div>
-            <span className="recipe-view__servings-unit">{recipe.servingUnit}</span>
+            {showServingUnit && (
+              <span className="recipe-view__servings-unit">{recipe.servingUnit}</span>
+            )}
           </div>
 
-          <div className="recipe-view__modes" role="group" aria-label="View options">
-            <button
-              type="button"
-              className={`recipe-view__mode-btn ${plainText ? "recipe-view__mode-btn--on" : ""}`}
-              onClick={() => setPlainText((p) => !p)}
-              aria-pressed={plainText}
-            >
-              Plain text
-            </button>
-            <button
-              type="button"
-              className={`recipe-view__mode-btn ${fitToScreen ? "recipe-view__mode-btn--on" : ""}`}
-              onClick={() => setFitToScreen((f) => !f)}
-              aria-pressed={fitToScreen}
-              title="Fit entire recipe on one screen"
-            >
-              Fit to screen
-            </button>
-          </div>
-        </div>
-
-        <div className="recipe-view__wrapper" ref={wrapperRef}>
-          <div
-            className="recipe-view__scale-container"
-            style={
-              fitToScreen && contentHeight > 0
-                ? { height: contentHeight * scale, flexShrink: 0 }
-                : undefined
+          <button
+            type="button"
+            className={`recipe-view__keep-awake ${wakeLock.enabled ? "recipe-view__keep-awake--on" : ""}`}
+            onClick={() => void wakeLock.toggle()}
+            disabled={!wakeLock.supported}
+            aria-pressed={wakeLock.enabled}
+            title={
+              !wakeLock.supported
+                ? "Screen wake lock is not supported in this browser"
+                : wakeLock.enabled
+                  ? "Tap to allow screen to sleep again"
+                  : "Keep screen on while you cook"
             }
           >
-            <div
-              className="recipe-view__content"
-              ref={contentRef}
-              style={
-                fitToScreen
-                  ? {
-                      transform: `scale(${scale})`,
-                      transformOrigin: "top left",
-                      width: scale > 0 ? `${100 / scale}%` : "100%",
-                    }
-                  : undefined
-              }
+            <span className="recipe-view__keep-awake-icon" aria-hidden>☀</span>
+            {wakeLock.enabled ? "Screen on" : "Keep awake"}
+          </button>
+        </div>
+
+        <div className="recipe-view__wrapper">
+          <div className="recipe-view__content">
+            {r.imageUrl && (
+              <RecipeImage src={r.imageUrl} alt={recipe.title} />
+            )}
+
+            {recipe.description && (
+              <p className="recipe-view__description">{recipe.description}</p>
+            )}
+
+            {(recipe.prepTime != null || recipe.cookTime != null) && (
+              <div className="recipe-view__meta">
+                {recipe.prepTime != null && (
+                  <span className="recipe-view__meta-item">
+                    <span className="recipe-view__meta-label">Prep</span>
+                    {recipe.prepTime}m
+                  </span>
+                )}
+                {recipe.cookTime != null && (
+                  <span className="recipe-view__meta-item">
+                    <span className="recipe-view__meta-label">Cook</span>
+                    {recipe.cookTime}m
+                  </span>
+                )}
+                {recipe.prepTime != null && recipe.cookTime != null && (
+                  <span className="recipe-view__meta-item">
+                    <span className="recipe-view__meta-label">Total</span>
+                    {recipe.prepTime + recipe.cookTime}m
+                  </span>
+                )}
+              </div>
+            )}
+
+            <section
+              className="recipe-view__section"
+              aria-labelledby="ingredients-heading"
             >
-              {r.imageUrl && (
-                <RecipeImage src={r.imageUrl} alt={recipe.title} />
-              )}
-
-              {recipe.description && !plainText && (
-                <p className="recipe-view__description">{recipe.description}</p>
-              )}
-
-              {!plainText && (recipe.prepTime != null || recipe.cookTime != null) && (
-                <div className="recipe-view__meta">
-                  {recipe.prepTime != null && (
-                    <span className="recipe-view__meta-item">
-                      <span className="recipe-view__meta-label">Prep</span>
-                      {recipe.prepTime}m
-                    </span>
+              <h2 id="ingredients-heading" className="recipe-view__section-title">
+                Ingredients
+              </h2>
+              {(canAddAll || onAddSelectedToList) && (
+                <div className="recipe-view__list-actions">
+                  {canAddAll && (
+                    <button
+                      type="button"
+                      className="recipe-view__list-btn"
+                      onClick={handleAddAllToList}
+                    >
+                      Add all to shopping list
+                    </button>
                   )}
-                  {recipe.cookTime != null && (
-                    <span className="recipe-view__meta-item">
-                      <span className="recipe-view__meta-label">Cook</span>
-                      {recipe.cookTime}m
-                    </span>
-                  )}
-                  {recipe.prepTime != null && recipe.cookTime != null && (
-                    <span className="recipe-view__meta-item">
-                      <span className="recipe-view__meta-label">Total</span>
-                      {recipe.prepTime + recipe.cookTime}m
-                    </span>
-                  )}
-                </div>
-              )}
-
-              <section
-                className="recipe-view__section"
-                aria-labelledby="ingredients-heading"
-              >
-                <h2 id="ingredients-heading" className="recipe-view__section-title">
-                  Ingredients
-                </h2>
-                {(canAddAll || canAddSelected) && (
-                  <div className="recipe-view__list-actions">
-                    {canAddAll && (
+                  {onAddSelectedToList && scaledIngredients.length > 0 && (
+                    <>
                       <button
                         type="button"
-                        className="recipe-view__list-btn"
-                        onClick={handleAddAllToList}
+                        className="recipe-view__list-btn recipe-view__list-btn--secondary"
+                        onClick={allIngredientsSelected ? deselectAllIngredients : selectAllIngredients}
                       >
-                        Add all to shopping list
+                        {allIngredientsSelected ? "Deselect all" : "Select all"}
                       </button>
-                    )}
-                    {onAddSelectedToList && scaledIngredients.length > 0 && (
-                      <>
+                      {selectedCount > 0 && (
                         <button
                           type="button"
-                          className="recipe-view__list-btn recipe-view__list-btn--secondary"
-                          onClick={selectAllIngredients}
+                          className="recipe-view__list-btn"
+                          onClick={handleAddSelectedToList}
                         >
-                          Select all
+                          Add selected ({selectedCount}) to list
                         </button>
-                        {selectedCount > 0 && (
-                          <button
-                            type="button"
-                            className="recipe-view__list-btn"
-                            onClick={handleAddSelectedToList}
-                          >
-                            Add selected ({selectedCount}) to list
-                          </button>
-                        )}
-                      </>
-                    )}
-                  </div>
-                )}
-                <ul className="recipe-view__ingredients">
-                  {scaledIngredients.map((ing, i) => (
-                    <li key={ing.id ?? i} className="recipe-view__ingredient">
-                      {onAddSelectedToList && (
-                        <input
-                          type="checkbox"
-                          id={`ing-check-${ing.id ?? i}`}
-                          className="recipe-view__ingredient-check"
-                          checked={selectedIngIds.has(ing.id)}
-                          onChange={() => toggleIngredient(ing.id)}
-                          aria-label={`Add ${ing.name} to shopping list`}
-                        />
                       )}
-                      <span className="recipe-view__ingredient-qty">
-                        {ing.quantity > 0 ? ing.text : ""}
-                      </span>
-                      {ing.quantity > 0 && ing.unit && (
-                        <span className="recipe-view__ingredient-unit">
-                          {ing.unit}
-                        </span>
-                      )}
-                      <span className="recipe-view__ingredient-name">
-                        {ing.name}
-                        {ing.notes ? ` (${ing.notes})` : ""}
-                        {ing.isOptional ? " (optional)" : ""}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-
-              <section
-                className="recipe-view__section"
-                aria-labelledby="steps-heading"
-              >
-                <div className="recipe-view__section-header">
-                  <h2 id="steps-heading" className="recipe-view__section-title">
-                    Steps
-                  </h2>
-                  {totalSteps > 0 && (
-                    <span className="recipe-view__step-progress">
-                      {completedCount}/{totalSteps}
-                    </span>
+                    </>
                   )}
                 </div>
-                {totalSteps > 0 && (
-                  <div
-                    className="recipe-view__progress-bar"
-                    role="progressbar"
-                    aria-valuenow={completedCount}
-                    aria-valuemin={0}
-                    aria-valuemax={totalSteps}
-                  >
-                    <div
-                      className="recipe-view__progress-fill"
-                      style={{
-                        width: `${(completedCount / totalSteps) * 100}%`,
-                      }}
-                    />
-                  </div>
-                )}
-                <ol className="recipe-view__steps">
-                  {sortedSteps.map((step, i) => {
-                    const stepId = step.id ?? String(i);
-                    const done = completedStepIds.has(stepId);
-                    return (
-                      <li
-                        key={stepId}
-                        className={`recipe-view__step ${done ? "recipe-view__step--done" : ""}`}
-                      >
-                        <button
-                          type="button"
-                          className="recipe-view__step-check"
-                          onClick={() => toggleStep(stepId)}
-                          aria-pressed={done}
-                          aria-label={
-                            done
-                              ? `Mark step ${i + 1} incomplete`
-                              : `Mark step ${i + 1} complete`
-                          }
-                        >
-                          <span className="recipe-view__step-num">{i + 1}</span>
-                        </button>
-                        <div className="recipe-view__step-body">
-                          <span className="recipe-view__step-text">
-                            {step.instruction}
-                          </span>
-                          {step.timerMinutes != null &&
-                            step.timerMinutes > 0 &&
-                            !plainText && (
-                              <StepTimer minutes={step.timerMinutes} />
-                            )}
-                          {step.timerMinutes != null &&
-                            step.timerMinutes > 0 &&
-                            plainText && (
-                              <span className="recipe-view__step-timer">
-                                — {step.timerMinutes} min
-                              </span>
-                            )}
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ol>
-              </section>
-
-              {recipe.notes && (
-                <section
-                  className="recipe-view__section recipe-view__notes-section"
-                  aria-labelledby="notes-heading"
-                >
-                  <h2 id="notes-heading" className="recipe-view__section-title">
-                    Notes
-                  </h2>
-                  <p className="recipe-view__notes">{recipe.notes}</p>
-                </section>
               )}
-            </div>
+              <ul
+                className={`recipe-view__ingredients ${hasShoppingList ? "recipe-view__ingredients--selectable" : ""}`}
+              >
+                {scaledIngredients.map((ing, i) => {
+                  const ingKey = ing.id ?? String(i);
+                  const subOpen = subPanelOpen.has(ingKey);
+                  const subEntry = subCache.get(ingKey);
+                  const subIsLoading = subLoading.has(ingKey);
+                  return (
+                  <li key={ingKey} className="recipe-view__ingredient-item">
+                    <div className="recipe-view__ingredient">
+                    {onAddSelectedToList && (
+                      <label className="recipe-view__ingredient-check">
+                        <input
+                          type="checkbox"
+                          className="recipe-view__ingredient-check-input"
+                          checked={selectedIngIds.has(ing.id)}
+                          onChange={() => toggleIngredient(ing.id)}
+                        />
+                        <span className="recipe-view__ingredient-check-box" aria-hidden>
+                          <span className="recipe-view__ingredient-check-icon">✓</span>
+                        </span>
+                        <span className="recipe-view__sr-only">
+                          Select {ing.name} for shopping list
+                        </span>
+                      </label>
+                    )}
+                    <span className="recipe-view__ingredient-qty">
+                      {ing.quantity > 0 ? ing.text : ""}
+                    </span>
+                    <span className="recipe-view__ingredient-unit">
+                      {ing.quantity > 0 ? ing.unit : ""}
+                    </span>
+                    <span className="recipe-view__ingredient-name">
+                      {ing.name}
+                      {ing.notes ? ` (${ing.notes})` : ""}
+                      {ing.isOptional ? " (optional)" : ""}
+                    </span>
+                    <button
+                      type="button"
+                      className={`recipe-view__sub-btn ${subOpen ? "recipe-view__sub-btn--open" : ""}`}
+                      onClick={() => toggleSubPanel(ingKey, ing.name)}
+                      aria-expanded={subOpen}
+                      aria-controls={`sub-panel-${ingKey}`}
+                      aria-label={`Substitute for ${ing.name}`}
+                    >
+                      Substitute
+                    </button>
+                  </div>
+                  {subOpen && (
+                    <div
+                      id={`sub-panel-${ingKey}`}
+                      className="recipe-view__sub-panel"
+                      role="region"
+                      aria-label={`Substitutes for ${ing.name}`}
+                      aria-busy={subIsLoading}
+                    >
+                      {subIsLoading && (
+                        <p className="recipe-view__sub-text recipe-view__sub-text--muted">
+                          Finding substitutes...
+                        </p>
+                      )}
+                      {!subIsLoading && subEntry?.noSubstitute && (
+                        <p className="recipe-view__sub-text recipe-view__sub-text--muted">
+                          No common substitute — this one&apos;s pretty essential here.
+                        </p>
+                      )}
+                      {!subIsLoading && subEntry && !subEntry.noSubstitute && (
+                        <>
+                          {subEntry.substitutes.length > 1 && (
+                            <p className="recipe-view__sub-count" aria-live="polite">
+                              {subEntry.index + 1} of {subEntry.substitutes.length}
+                            </p>
+                          )}
+                          <p className="recipe-view__sub-text">
+                            {subEntry.substitutes[subEntry.index]}
+                          </p>
+                          {subEntry.substitutes.length > 1 && (
+                            <button
+                              type="button"
+                              className="recipe-view__sub-cycle"
+                              onClick={() => cycleSubstitute(ingKey)}
+                            >
+                              Try another
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
+                  </li>
+                  );
+                })}
+              </ul>
+            </section>
+
+            <section
+              className="recipe-view__section"
+              aria-labelledby="steps-heading"
+            >
+              <div className="recipe-view__section-header">
+                <h2 id="steps-heading" className="recipe-view__section-title">
+                  Steps
+                </h2>
+                {totalSteps > 0 && (
+                  <span className="recipe-view__step-progress">
+                    {completedCount}/{totalSteps}
+                  </span>
+                )}
+              </div>
+              {totalSteps > 0 && (
+                <div
+                  className="recipe-view__progress-bar"
+                  role="progressbar"
+                  aria-valuenow={completedCount}
+                  aria-valuemin={0}
+                  aria-valuemax={totalSteps}
+                >
+                  <div
+                    className="recipe-view__progress-fill"
+                    style={{
+                      width: `${(completedCount / totalSteps) * 100}%`,
+                    }}
+                  />
+                </div>
+              )}
+              <ol className="recipe-view__steps">
+                {sortedSteps.map((step, i) => {
+                  const stepId = step.id ?? String(i);
+                  const done = completedStepIds.has(stepId);
+                  return (
+                    <li
+                      key={stepId}
+                      className={`recipe-view__step ${done ? "recipe-view__step--done" : ""}`}
+                    >
+                      <button
+                        type="button"
+                        className="recipe-view__step-check"
+                        onClick={() => toggleStep(stepId)}
+                        aria-pressed={done}
+                        aria-label={
+                          done
+                            ? `Mark step ${i + 1} incomplete`
+                            : `Mark step ${i + 1} complete`
+                        }
+                      >
+                        {done ? (
+                          <span className="recipe-view__step-checkmark" aria-hidden>✓</span>
+                        ) : (
+                          <span className="recipe-view__step-num" aria-hidden>{i + 1}</span>
+                        )}
+                      </button>
+                      <div className="recipe-view__step-body">
+                        <span className="recipe-view__step-text">
+                          {step.instruction}
+                        </span>
+                        {step.timerMinutes != null && step.timerMinutes > 0 && (
+                          <StepTimer minutes={step.timerMinutes} />
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ol>
+            </section>
+
+            {recipe.notes && (
+              <section
+                className="recipe-view__section recipe-view__notes-section"
+                aria-labelledby="notes-heading"
+              >
+                <h2 id="notes-heading" className="recipe-view__section-title">
+                  Notes
+                </h2>
+                <p className="recipe-view__notes">{recipe.notes}</p>
+              </section>
+            )}
           </div>
         </div>
 
         <footer className="recipe-view__footer">
-          <button type="button" className="recipe-view__edit" onClick={onEdit}>
+          <button type="button" className="recipe-view__edit" onClick={handleEdit}>
             Edit recipe
           </button>
         </footer>

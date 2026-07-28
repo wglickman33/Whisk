@@ -19,10 +19,12 @@ model User {
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
-  recipes           Recipe[]
-  shoppingListItems ShoppingListItem[]
-  folders           Folder[]
-  tags              Tag[]
+  recipes                 Recipe[]
+  folders                 Folder[]
+  tags                    Tag[]
+  ownedShoppingLists      ShoppingList[]       @relation("OwnedShoppingLists")
+  shoppingListMemberships ShoppingListMember[]
+  shoppingListItemsAdded  ShoppingListItem[]
 }
 
 model Recipe {
@@ -123,19 +125,42 @@ model RecipeTag {
   @@id([recipeId, tagId])
 }
 
-model ShoppingListItem {
-  id                String   @id @default(uuid())
-  userId            String
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name              String
-  quantity          Float    @default(1)
-  unit              String   @default("")
-  notes             String?
-  sourceRecipeId    String?
-  sourceRecipeTitle String?
-  sortOrder         Int      @default(0)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+model ShoppingList {
+  id          String   @id @default(uuid())
+  name        String
+  ownerUserId String
+  owner       User     @relation("OwnedShoppingLists", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  shareCode   String?  @unique
+  createdAt   DateTime @default(now())
 
+  members ShoppingListMember[]
+  items   ShoppingListItem[]
+
+  @@index([ownerUserId])
+}
+
+model ShoppingListMember {
+  listId String
+  userId String
+  list   ShoppingList @relation(fields: [listId], references: [id], onDelete: Cascade)
+  user   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([listId, userId])
   @@index([userId])
+}
+
+model ShoppingListItem {
+  id            String   @id @default(uuid())
+  listId        String
+  list          ShoppingList @relation(fields: [listId], references: [id], onDelete: Cascade)
+  name          String
+  category      String?
+  quantity      String?
+  note          String?
+  checked       Boolean  @default(false)
+  addedByUserId String
+  addedBy       User     @relation(fields: [addedByUserId], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
+
+  @@index([listId])
 }
