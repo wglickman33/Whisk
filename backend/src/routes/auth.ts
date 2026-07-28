@@ -2,8 +2,8 @@ import { Router, Request } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "node:crypto";
-import { Resend } from "resend";
 import { prisma } from "../lib/prisma.js";
+import { isEmailJsConfigured, sendEmailJsTemplate } from "../utils/emailjs.js";
 import {
   isValidEmail,
   isValidPassword,
@@ -26,25 +26,25 @@ function resetFrontendUrl(token: string, email: string): string {
   return `${base}/?${params.toString()}`;
 }
 
-async function sendResetEmail(email: string, token: string): Promise<void> {
+async function sendResetEmail(email: string, token: string, name?: string | null): Promise<void> {
   const resetUrl = resetFrontendUrl(token, email);
-  const apiKey = process.env.RESEND_API_KEY;
+  const toName = name?.trim() || email.split("@")[0] || "there";
 
-  if (apiKey) {
-    const resend = new Resend(apiKey);
-    const from = process.env.RESEND_FROM ?? "Whisk <onboarding@resend.dev>";
-    await resend.emails.send({
-      from,
-      to: email,
-      subject: "Reset your Whisk password",
-      html: `<p>Click to reset your password (expires in 1 hour):</p><p><a href="${resetUrl}">${resetUrl}</a></p>`,
+  if (isEmailJsConfigured()) {
+    await sendEmailJsTemplate({
+      to_email: email,
+      to_name: toName,
+      reset_link: resetUrl,
     });
     return;
   }
 
-  if (process.env.NODE_ENV !== "production") {
-    console.log(`[dev] Password reset link for ${email}: ${resetUrl}`);
+  if (process.env.NODE_ENV === "production") {
+    console.error("[auth] Password reset email skipped: EmailJS is not configured.");
+    return;
   }
+
+  console.log(`[dev] Password reset link for ${email}: ${resetUrl}`);
 }
 
 router.post("/register", async (req, res) => {
@@ -148,7 +148,7 @@ router.post("/forgot-password", async (req, res) => {
           resetTokenExpires: new Date(Date.now() + RESET_TTL_MS),
         },
       });
-      await sendResetEmail(normalizedEmail, rawToken);
+      await sendResetEmail(normalizedEmail, rawToken, user.name);
     }
 
     res.json({ message: "If that email exists, a reset link was sent." });
