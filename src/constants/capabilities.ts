@@ -6,11 +6,15 @@ import {
 import type { FormatCategory } from "../converters/core/types";
 
 export const TOOL_CAPABILITIES = [
-  "Resize & crop",
-  "Compress & sharpen",
-  "Remove background",
-  "Color picker & QR codes",
-  "Markdown preview",
+  "Resize, crop, rotate & adjust photos",
+  "Filters, palette & watermark",
+  "Photos to PDF & EXIF privacy",
+  "Compress, sharpen & remove background",
+  "Color picker, QR & barcodes",
+  "Recipe scaler, oven temp, pan & timer",
+  "Word count, case, diff & HTML preview",
+  "Markdown, JSON, YAML, CSV & timestamps",
+  "Base64, hash & UUID generators",
 ] as const;
 
 export const APP_CAPABILITIES = [

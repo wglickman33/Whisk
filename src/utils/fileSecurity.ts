@@ -62,7 +62,7 @@ export interface FileValidationResult {
   error?: string;
 }
 
-function sanitizeFilename(name: string): string {
+export function sanitizeFilename(name: string): string {
   return name.replace(/[/\\<>:"|?*\u0000]/g, "_").replace(/\.{2,}/g, ".").trim();
 }
 

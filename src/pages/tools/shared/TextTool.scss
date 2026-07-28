@@ -1,0 +1,105 @@
+@use "../../../styles/tokens" as *;
+
+.text-tool {
+  display: flex;
+  flex-direction: column;
+  gap: $space-lg;
+}
+
+.text-tool__modes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-sm;
+}
+
+.text-tool__mode {
+  min-height: $touch-min;
+  padding: $space-sm $space-md;
+  font-size: 0.9375rem;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: $radius-md;
+  cursor: pointer;
+
+  &--active {
+    border-color: var(--accent);
+    color: var(--accent);
+    font-weight: 600;
+  }
+}
+
+.text-tool__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
+  gap: $space-md;
+}
+
+.text-tool__stat {
+  padding: $space-md;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: $radius-md;
+  text-align: center;
+}
+
+.text-tool__stat-value {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.text-tool__stat-label {
+  display: block;
+  margin-top: $space-xs;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+.text-tool__summary {
+  font-size: 0.9375rem;
+  color: var(--text-muted);
+}
+
+.text-tool__diff {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  padding: $space-md;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: $radius-md;
+  overflow-x: auto;
+  white-space: pre-wrap;
+}
+
+.text-tool__diff-line--add {
+  color: var(--success, #2e7d32);
+  background: color-mix(in srgb, var(--success, #2e7d32) 8%, transparent);
+}
+
+.text-tool__diff-line--remove {
+  color: var(--danger, #c62828);
+  background: color-mix(in srgb, var(--danger, #c62828) 8%, transparent);
+}
+
+.text-tool__now {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-md;
+  align-items: center;
+}
+
+.text-tool__now-btn {
+  min-height: $touch-min;
+  padding: $space-sm $space-md;
+  font-family: inherit;
+  font-size: 0.9375rem;
+  color: var(--accent);
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: $radius-md;
+  cursor: pointer;
+}

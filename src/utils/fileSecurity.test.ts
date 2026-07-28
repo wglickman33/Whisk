@@ -2,7 +2,9 @@ import { describe, it, expect } from "vitest";
 import {
   validateUploadedFile,
   validateFileContent,
+  validateImageForTools,
   sanitizeSvgContent,
+  sanitizeFilename,
   FILE_SIZE_LIMITS,
 } from "./fileSecurity";
 
@@ -57,6 +59,40 @@ describe("validateFileContent", () => {
     const file = makeFile("photo.png", bytes);
     const result = await validateFileContent(file, "png");
     expect(result.ok).toBe(true);
+  });
+});
+
+describe("validateImageForTools", () => {
+  it("accepts valid png", async () => {
+    const bytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    const file = makeFile("photo.png", bytes, "image/png");
+    const result = await validateImageForTools(file);
+    expect(result.ok).toBe(true);
+  });
+
+  it("rejects disguised exe as png", async () => {
+    const file = makeFile("photo.png", new Uint8Array([0x00, 0x00, 0x00, 0x00]));
+    const result = await validateImageForTools(file);
+    expect(result.ok).toBe(false);
+  });
+
+  it("skips magic check for heic", async () => {
+    const file = makeFile("photo.heic", new Uint8Array([1, 2, 3]), "image/heic");
+    const result = await validateImageForTools(file);
+    expect(result.ok).toBe(true);
+  });
+
+  it("rejects oversize images", async () => {
+    const file = makeFile("big.jpg", new Uint8Array(26 * 1024 * 1024));
+    const result = await validateImageForTools(file);
+    expect(result.ok).toBe(false);
+    expect(result.error).toMatch(/25 MB/);
+  });
+});
+
+describe("sanitizeFilename", () => {
+  it("strips path characters", () => {
+    expect(sanitizeFilename("bad<>name.png")).toBe("bad__name.png");
   });
 });
 

@@ -9,16 +9,41 @@ import { Home } from "./pages/Home";
 import { ConverterLayout } from "./pages/converter/ConverterLayout";
 import { FileConverterPage } from "./pages/converter/FileConverterPage";
 import { UnitConverterPage } from "./pages/converter/UnitConverterPage";
-import { ToolsLayout } from "./pages/tools/ToolsLayout";
-import { ToolsHomePage } from "./pages/tools/ToolsHomePage";
-import { CropPage } from "./pages/tools/CropPage";
-import { ResizePage } from "./pages/tools/ResizePage";
-import { CompressPage } from "./pages/tools/CompressPage";
-import { RemoveBgPage } from "./pages/tools/RemoveBgPage";
-import { SharpenPage } from "./pages/tools/SharpenPage";
-import { ColorPickerPage } from "./pages/tools/ColorPickerPage";
-import { QRGeneratorPage } from "./pages/tools/QRGeneratorPage";
-import { MarkdownPage } from "./pages/tools/MarkdownPage";
+import {
+  ToolsLayout,
+  ToolsHomePage,
+  CropPage,
+  ResizePage,
+  CompressPage,
+  RemoveBgPage,
+  SharpenPage,
+  ColorPickerPage,
+  QRGeneratorPage,
+  MarkdownPage,
+  RotatePage,
+  JsonPage,
+  Base64Page,
+  HashPage,
+  UuidPage,
+  AdjustPage,
+  FiltersPage,
+  PalettePage,
+  WatermarkPage,
+  ImagesToPdfPage,
+  ExifPage,
+  YamlPage,
+  DiffPage,
+  CounterPage,
+  CasePage,
+  CsvPage,
+  TimestampPage,
+  IngredientScalePage,
+  OvenTempPage,
+  PanYieldPage,
+  TimerPage,
+  BarcodePage,
+  HtmlPreviewPage,
+} from "./pages/tools";
 import { RecipesPage } from "./pages/RecipesPage";
 import { ShoppingListPage } from "./pages/ShoppingListPage";
 import { DocsPage } from "./pages/info/DocsPage";
@@ -87,6 +112,29 @@ export default function App() {
             <Route path="color-picker" element={<ColorPickerPage />} />
             <Route path="qr" element={<QRGeneratorPage />} />
             <Route path="markdown" element={<MarkdownPage />} />
+            <Route path="rotate" element={<RotatePage />} />
+            <Route path="json" element={<JsonPage />} />
+            <Route path="base64" element={<Base64Page />} />
+            <Route path="hash" element={<HashPage />} />
+            <Route path="uuid" element={<UuidPage />} />
+            <Route path="adjust" element={<AdjustPage />} />
+            <Route path="filters" element={<FiltersPage />} />
+            <Route path="palette" element={<PalettePage />} />
+            <Route path="watermark" element={<WatermarkPage />} />
+            <Route path="images-to-pdf" element={<ImagesToPdfPage />} />
+            <Route path="exif" element={<ExifPage />} />
+            <Route path="yaml" element={<YamlPage />} />
+            <Route path="diff" element={<DiffPage />} />
+            <Route path="counter" element={<CounterPage />} />
+            <Route path="case" element={<CasePage />} />
+            <Route path="csv" element={<CsvPage />} />
+            <Route path="timestamp" element={<TimestampPage />} />
+            <Route path="ingredient-scale" element={<IngredientScalePage />} />
+            <Route path="oven-temp" element={<OvenTempPage />} />
+            <Route path="pan-yield" element={<PanYieldPage />} />
+            <Route path="timer" element={<TimerPage />} />
+            <Route path="barcode" element={<BarcodePage />} />
+            <Route path="html-preview" element={<HtmlPreviewPage />} />
           </Route>
           <Route path="recipes" element={<RecipesPage />} />
           <Route path="shopping-list" element={<ShoppingListPage />} />

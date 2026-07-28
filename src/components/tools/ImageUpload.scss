@@ -122,6 +122,13 @@
   color: var(--text-muted);
 }
 
+.image-drop__gif-note {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-style: italic;
+  text-align: center;
+}
+
 .image-drop__change {
   margin-top: 0.35rem;
   background: transparent;

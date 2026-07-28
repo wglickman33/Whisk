@@ -1,0 +1,8 @@
+@use "../../../styles/tokens" as *;
+
+.images-pdf__intro {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}

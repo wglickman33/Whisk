@@ -1,0 +1,125 @@
+@use "../../../styles/tokens" as *;
+
+.kitchen-tool {
+  display: flex;
+  flex-direction: column;
+  gap: $space-lg;
+}
+
+.kitchen-tool__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-md;
+  align-items: flex-end;
+}
+
+.kitchen-tool__field {
+  display: flex;
+  flex-direction: column;
+  gap: $space-xs;
+  min-width: 7rem;
+
+  span {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+  }
+
+  input,
+  select {
+    min-height: $touch-min;
+    padding: $space-sm $space-md;
+    font-family: inherit;
+    font-size: 1rem;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: $radius-md;
+  }
+}
+
+.kitchen-tool__modes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-sm;
+}
+
+.kitchen-tool__mode {
+  min-height: $touch-min;
+  padding: $space-sm $space-md;
+  font-size: 0.9375rem;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: $radius-md;
+  cursor: pointer;
+
+  &--active {
+    border-color: var(--accent);
+    color: var(--accent);
+    font-weight: 600;
+  }
+}
+
+.kitchen-tool__result {
+  padding: $space-md;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: $radius-md;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.kitchen-tool__timer-display {
+  font-size: 3rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  color: var(--accent);
+  padding: $space-lg 0;
+}
+
+.kitchen-tool__timer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-sm;
+  justify-content: center;
+}
+
+.kitchen-tool__btn {
+  min-height: $touch-min;
+  padding: $space-sm $space-lg;
+  font-family: inherit;
+  font-size: 1rem;
+  border-radius: $radius-md;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+
+  &--primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-text, #fff);
+    font-weight: 600;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.kitchen-tool__presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-sm;
+  justify-content: center;
+}
+
+.kitchen-tool__hint {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  text-align: center;
+}

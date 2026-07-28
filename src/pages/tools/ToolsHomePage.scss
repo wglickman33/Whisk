@@ -1,49 +1,94 @@
 @use "../../styles/tokens" as *;
 
+.tools-home {
+  display: flex;
+  flex-direction: column;
+  gap: $space-xl;
+  max-width: 960px;
+  width: 100%;
+}
+
+.tools-home__header {
+  display: flex;
+  flex-direction: column;
+  gap: $space-sm;
+}
+
+.tools-home__title {
+  margin: 0;
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
 .tools-home__intro {
+  margin: 0;
   color: var(--text-muted);
   font-size: 1rem;
   line-height: 1.6;
-  margin: 0 0 $space-xl;
+  max-width: 36rem;
 }
 
-.tools-home__grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: $space-md;
-}
-
-.tools-home__card {
+.tools-home__filters {
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  flex-wrap: wrap;
   gap: $space-sm;
-  padding: $space-lg $space-md;
+}
+
+.tools-home__chip {
+  min-height: $touch-min;
+  padding: $space-sm $space-md;
+  font-size: 0.9375rem;
+  font-family: inherit;
+  color: var(--text);
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: $radius-lg;
-  color: var(--text);
-  text-decoration: none;
-  text-align: center;
+  border-radius: $radius-full;
+  cursor: pointer;
   transition: border-color $transition-base, background-color $transition-base;
 
   &:hover {
     border-color: var(--accent);
+  }
+
+  &--active {
     background: var(--bg-elevated);
+    border-color: var(--accent);
+    color: var(--accent);
+    font-weight: 600;
   }
 }
 
-.tools-home__card-icon {
+.tools-home__section {
   display: flex;
-  color: var(--accent);
-
-  svg {
-    width: 1.75rem;
-    height: 1.75rem;
-  }
+  flex-direction: column;
+  gap: $space-md;
 }
 
-.tools-home__card-label {
-  font-size: 0.85rem;
-  font-weight: 500;
+.tools-home__section-title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.tools-home__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+  gap: $space-md;
+}
+
+.tools-home__grid--popular {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
+}
+
+.tools-home__empty {
+  margin: 0;
+  padding: $space-xl;
+  text-align: center;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: $radius-lg;
 }

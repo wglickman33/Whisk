@@ -1,0 +1,13 @@
+export { AdjustPage } from "./AdjustPage";
+export { CropPage } from "./CropPage";
+export { ResizePage } from "./ResizePage";
+export { CompressPage } from "./CompressPage";
+export { RemoveBgPage } from "./RemoveBgPage";
+export { SharpenPage } from "./SharpenPage";
+export { ColorPickerPage } from "./ColorPickerPage";
+export { RotatePage } from "./RotatePage";
+export { FiltersPage } from "./FiltersPage";
+export { PalettePage } from "./PalettePage";
+export { WatermarkPage } from "./WatermarkPage";
+export { ImagesToPdfPage } from "./ImagesToPdfPage";
+export { ExifPage } from "./ExifPage";

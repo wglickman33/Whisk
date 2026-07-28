@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import { IconDownload } from "../ui/ConverterIcons";
+import { sanitizeFilename } from "../../utils/fileSecurity";
 import "./ToolOutput.scss";
 
 interface ToolOutputProps {
@@ -12,12 +13,14 @@ interface ToolOutputProps {
 }
 
 export function ToolOutput({ src, filename, mimeType, originalSize, resultSize, label }: ToolOutputProps) {
+  const safeName = sanitizeFilename(filename) || "download";
+
   const download = useCallback(() => {
     const a = document.createElement("a");
     a.href = src;
-    a.download = filename;
+    a.download = safeName;
     a.click();
-  }, [src, filename]);
+  }, [src, safeName]);
 
   const formatSize = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`;
@@ -30,7 +33,7 @@ export function ToolOutput({ src, filename, mimeType, originalSize, resultSize, 
       {label && <span className="tool-output__label">{label}</span>}
 
       <div className="tool-output__preview">
-        <img src={src} alt="Result" className="tool-output__image" />
+        <img src={src} alt="Your result" className="tool-output__image" />
       </div>
 
       {originalSize != null && resultSize != null && (
@@ -48,12 +51,10 @@ export function ToolOutput({ src, filename, mimeType, originalSize, resultSize, 
 
       <button type="button" className="tool-output__download" onClick={download}>
         <IconDownload />
-        Download {filename}
+        Download {safeName}
       </button>
 
-      {mimeType && (
-        <span className="tool-output__mime">{mimeType}</span>
-      )}
+      {mimeType && <span className="tool-output__mime">{mimeType}</span>}
     </div>
   );
 }

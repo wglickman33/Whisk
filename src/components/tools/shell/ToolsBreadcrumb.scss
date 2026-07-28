@@ -1,0 +1,30 @@
+@use "../../../styles/tokens" as *;
+
+.tools-breadcrumb__list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $space-xs;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.875rem;
+}
+
+.tools-breadcrumb__item {
+  color: var(--text-muted);
+
+  a {
+    color: var(--text-muted);
+    text-decoration: none;
+
+    &:hover {
+      color: var(--accent);
+    }
+  }
+
+  &--current {
+    color: var(--text);
+    font-weight: 500;
+  }
+}

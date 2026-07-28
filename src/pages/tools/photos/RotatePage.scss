@@ -1,0 +1,43 @@
+@use "../../../styles/tokens" as *;
+
+.rotate-controls {
+  display: flex;
+  flex-direction: column;
+  gap: $space-md;
+}
+
+.rotate-controls__hint {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: var(--text-muted);
+}
+
+.rotate-controls__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-sm;
+}
+
+.rotate-controls__option {
+  min-height: $touch-min;
+  padding: $space-sm $space-md;
+  font-size: 0.9375rem;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: $radius-md;
+  cursor: pointer;
+  transition: border-color $transition-base, background-color $transition-base;
+
+  &:hover {
+    border-color: var(--accent);
+  }
+
+  &--active {
+    border-color: var(--accent);
+    background: var(--bg-elevated);
+    font-weight: 600;
+    color: var(--accent);
+  }
+}

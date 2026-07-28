@@ -1,0 +1,59 @@
+@use "../../../styles/tokens" as *;
+
+.base64-tool {
+  display: flex;
+  flex-direction: column;
+  gap: $space-lg;
+}
+
+.base64-tool__modes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-sm;
+}
+
+.base64-tool__mode {
+  min-height: $touch-min;
+  padding: $space-sm $space-md;
+  font-size: 0.9375rem;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: $radius-md;
+  cursor: pointer;
+
+  &--active {
+    border-color: var(--accent);
+    color: var(--accent);
+    font-weight: 600;
+  }
+}
+
+.base64-tool__file {
+  display: flex;
+  flex-direction: column;
+  gap: $space-sm;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+
+  input[type="file"] {
+    font-size: 0.875rem;
+  }
+}
+
+.base64-tool__file-note {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.base64-tool__clear {
+  font-family: inherit;
+  font-size: inherit;
+  color: var(--accent);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+}

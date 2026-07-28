@@ -1,0 +1,32 @@
+@use "../../../styles/tokens" as *;
+
+.related-tools {
+  padding-block-start: $space-lg;
+  border-block-start: 1px solid var(--border);
+}
+
+.related-tools__heading {
+  margin: 0 0 $space-sm;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.related-tools__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-sm $space-md;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  a {
+    font-size: 0.9375rem;
+    color: var(--accent);
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}

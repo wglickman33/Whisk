@@ -1,0 +1,95 @@
+@use "../../../styles/tokens" as *;
+
+.resize-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.resize-controls__dims {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+}
+
+.resize-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.resize-field__label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.resize-field__input {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: $radius-sm;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.9rem;
+  padding: 0.55rem 0.7rem;
+  width: 100%;
+  transition: border-color $transition-base;
+
+  &:focus {
+    border-color: var(--accent);
+    outline: none;
+  }
+}
+
+.resize-field__unit {
+  display: none;
+}
+
+.resize-controls__lock {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: $radius-sm;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0.5rem;
+  line-height: 1;
+  transition: border-color $transition-base;
+
+  &--active {
+    border-color: var(--accent);
+  }
+
+  &:hover {
+    border-color: var(--accent);
+  }
+}
+
+.resize-controls__original {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.resize-controls__btn {
+  background: var(--accent);
+  border: none;
+  border-radius: $radius-md;
+  color: white;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 0.65rem 1.5rem;
+  cursor: pointer;
+  width: 100%;
+  transition: background-color $transition-base, opacity $transition-base;
+
+  &:hover:not(:disabled) {
+    background: var(--accent-hover);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}

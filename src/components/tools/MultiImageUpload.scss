@@ -1,0 +1,93 @@
+@use "../../styles/tokens" as *;
+
+.multi-upload {
+  display: flex;
+  flex-direction: column;
+  gap: $space-md;
+}
+
+.multi-upload__drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $space-sm;
+  min-height: 8rem;
+  padding: $space-lg;
+  border: 2px dashed var(--border);
+  border-radius: $radius-lg;
+  background: var(--surface);
+  cursor: pointer;
+  color: var(--text-muted);
+  text-align: center;
+
+  &:hover {
+    border-color: var(--accent);
+  }
+}
+
+.multi-upload__input {
+  display: none;
+}
+
+.multi-upload__hint {
+  font-size: 0.8125rem;
+}
+
+.multi-upload__list {
+  display: flex;
+  flex-direction: column;
+  gap: $space-sm;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.multi-upload__item {
+  display: flex;
+  align-items: center;
+  gap: $space-md;
+  padding: $space-sm;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: $radius-md;
+}
+
+.multi-upload__thumb {
+  width: 3rem;
+  height: 3rem;
+  object-fit: cover;
+  border-radius: $radius-sm;
+}
+
+.multi-upload__name {
+  flex: 1;
+  font-size: 0.875rem;
+  word-break: break-all;
+}
+
+.multi-upload__remove,
+.multi-upload__clear {
+  min-height: $touch-min;
+  padding: $space-xs $space-md;
+  font-family: inherit;
+  font-size: 0.875rem;
+  border: 1px solid var(--border);
+  border-radius: $radius-md;
+  background: var(--surface);
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+}
+
+.multi-upload__clear {
+  align-self: flex-start;
+}
+
+.multi-upload__error {
+  margin: 0;
+  color: var(--error);
+  font-size: 0.875rem;
+}

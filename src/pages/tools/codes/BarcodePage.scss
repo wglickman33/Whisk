@@ -1,0 +1,69 @@
+@use "../../../styles/tokens" as *;
+
+.barcode-tool {
+  display: flex;
+  flex-direction: column;
+  gap: $space-lg;
+  max-width: 32rem;
+}
+
+.barcode-tool__field {
+  display: flex;
+  flex-direction: column;
+  gap: $space-xs;
+
+  span {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  input,
+  select {
+    min-height: $touch-min;
+    padding: $space-sm $space-md;
+    font-family: inherit;
+    font-size: 1rem;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: $radius-md;
+  }
+}
+
+.barcode-tool__error {
+  font-size: 0.875rem;
+  color: var(--error);
+}
+
+.barcode-tool__output {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  min-height: 8rem;
+}
+
+.barcode-tool__preview {
+  max-width: 100%;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: $radius-md;
+  padding: $space-md;
+}
+
+.barcode-tool__placeholder {
+  width: 100%;
+  padding: $space-xl;
+  text-align: center;
+  color: var(--text-muted);
+  border: 1px dashed var(--border);
+  border-radius: $radius-md;
+}
+
+.barcode-tool__canvas {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}

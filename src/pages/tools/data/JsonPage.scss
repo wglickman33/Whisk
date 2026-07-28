@@ -1,0 +1,31 @@
+@use "../../../styles/tokens" as *;
+
+.json-tool {
+  display: flex;
+  flex-direction: column;
+  gap: $space-lg;
+}
+
+.json-tool__modes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-sm;
+}
+
+.json-tool__mode {
+  min-height: $touch-min;
+  padding: $space-sm $space-md;
+  font-size: 0.9375rem;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: $radius-md;
+  cursor: pointer;
+
+  &--active {
+    border-color: var(--accent);
+    color: var(--accent);
+    font-weight: 600;
+  }
+}

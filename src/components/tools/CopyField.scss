@@ -1,0 +1,67 @@
+@use "../../styles/tokens" as *;
+
+.copy-field {
+  display: flex;
+  flex-direction: column;
+  gap: $space-sm;
+}
+
+.copy-field__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-md;
+}
+
+.copy-field__label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.copy-field__copy {
+  min-height: $touch-min;
+  padding: $space-xs $space-md;
+  font-size: 0.875rem;
+  font-family: inherit;
+  color: var(--accent);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: $radius-md;
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--accent);
+    background: var(--surface-hover);
+  }
+}
+
+.copy-field__textarea {
+  width: 100%;
+  min-height: 8rem;
+  padding: $space-md;
+  font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: $radius-md;
+  resize: vertical;
+  transition: border-color $transition-base;
+
+  &:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  &--error {
+    border-color: var(--error);
+  }
+}
+
+.copy-field__error {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--error);
+}

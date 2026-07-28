@@ -1,0 +1,76 @@
+@use "../../../styles/tokens" as *;
+
+.colorpick {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.colorpick__hint {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.colorpick__canvas {
+  max-width: 100%;
+  border: 1px solid var(--border);
+  border-radius: $radius-md;
+  cursor: not-allowed;
+  opacity: 0.6;
+
+  &--ready {
+    cursor: crosshair;
+    opacity: 1;
+  }
+}
+
+.colorpick__result {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: $radius-md;
+  padding: 1rem;
+}
+
+.colorpick__swatch {
+  width: 56px;
+  height: 56px;
+  border-radius: $radius-sm;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.colorpick__values {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.colorpick__value {
+  background: none;
+  border: none;
+  color: var(--text);
+  font-family: monospace;
+  font-size: 0.9rem;
+  cursor: pointer;
+  text-align: left;
+  padding: 0.25rem 0.5rem;
+  border-radius: $radius-sm;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: background-color $transition-base;
+
+  &:hover {
+    background: var(--surface-hover);
+  }
+}
+
+.colorpick__copied {
+  font-size: 0.7rem;
+  color: var(--success);
+  font-family: inherit;
+}

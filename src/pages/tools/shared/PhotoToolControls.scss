@@ -1,0 +1,111 @@
+@use "../../../styles/tokens" as *;
+
+.photo-tool-controls {
+  display: flex;
+  flex-direction: column;
+  gap: $space-lg;
+}
+
+.photo-tool-controls__slider {
+  display: flex;
+  flex-direction: column;
+  gap: $space-sm;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--text);
+
+  input[type="range"] {
+    width: 100%;
+    accent-color: var(--accent);
+    min-height: $touch-min;
+  }
+}
+
+.photo-tool-controls__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-sm;
+}
+
+.photo-tool-controls__option {
+  min-height: $touch-min;
+  padding: $space-sm $space-md;
+  font-size: 0.9375rem;
+  font-family: inherit;
+  border: 1px solid var(--border);
+  border-radius: $radius-md;
+  background: var(--surface);
+  cursor: pointer;
+
+  &--active {
+    border-color: var(--accent);
+    color: var(--accent);
+    font-weight: 600;
+  }
+}
+
+.photo-tool-controls__text {
+  width: 100%;
+  min-height: $touch-min;
+  padding: $space-md;
+  font-size: 1rem;
+  border: 1px solid var(--border);
+  border-radius: $radius-md;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.photo-tool-controls__palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-md;
+}
+
+.photo-tool-controls__swatch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $space-xs;
+  min-width: 4.5rem;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 0.8125rem;
+  color: var(--text);
+}
+
+.photo-tool-controls__swatch-color {
+  width: 3rem;
+  height: 3rem;
+  border-radius: $radius-md;
+  border: 1px solid var(--border);
+}
+
+.photo-tool-controls__exif {
+  display: flex;
+  flex-direction: column;
+  gap: $space-sm;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: flex;
+    justify-content: space-between;
+    gap: $space-md;
+    padding: $space-sm 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.9375rem;
+  }
+
+  span:first-child {
+    color: var(--text-muted);
+  }
+}
+
+.photo-tool-controls__empty {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.9375rem;
+}

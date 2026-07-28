@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { IconUpload } from "../ui/ConverterIcons";
 import { validateImageForTools } from "../../utils/fileSecurity";
+import { checkImageDimensions } from "../../utils/canvasUtils";
 import "./ImageUpload.scss";
 
 const ACCEPTED_EXTENSIONS = ".png,.jpg,.jpeg,.webp,.bmp,.gif,.heic,.heif";
@@ -67,6 +68,13 @@ export function ImageUpload({ onImage, onClear, image, label, hint }: ImageUploa
         prevUrlRef.current = objectUrl;
 
         const dims = await loadImageDimensions(objectUrl);
+        const sizeCheck = checkImageDimensions(dims.width, dims.height);
+        if (!sizeCheck.ok) {
+          URL.revokeObjectURL(objectUrl);
+          prevUrlRef.current = null;
+          setError(sizeCheck.error ?? "This photo is too large to process.");
+          return;
+        }
         onImage({ file: processed, objectUrl, ...dims });
       } catch {
         setError("Could not load image. Try a different file.");
@@ -152,6 +160,9 @@ export function ImageUpload({ onImage, onClear, image, label, hint }: ImageUploa
               <span className="image-drop__dims">
                 {image.width} &times; {image.height} &middot; {(image.file.size / 1024).toFixed(1)} KB
               </span>
+              {/\.gif$/i.test(image.file.name) && (
+                <span className="image-drop__gif-note">Animated GIFs export as a single frame.</span>
+              )}
             </div>
             <button type="button" className="image-drop__change" onClick={handleClear}>
               Change image
@@ -160,8 +171,8 @@ export function ImageUpload({ onImage, onClear, image, label, hint }: ImageUploa
         ) : (
           <div className="image-drop__empty">
             <IconUpload />
-            <span className="image-drop__label">{label ?? "Drop image here"}</span>
-            <span className="image-drop__hint">{hint ?? "or click to browse"}</span>
+            <span className="image-drop__label">{label ?? "Upload your photo"}</span>
+            <span className="image-drop__hint">{hint ?? "Drop it here or click to browse"}</span>
             <span className="image-drop__formats">PNG, JPG, WebP, BMP, GIF, HEIC</span>
           </div>
         )}

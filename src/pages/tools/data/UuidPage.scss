@@ -1,0 +1,27 @@
+@use "../../../styles/tokens" as *;
+
+.uuid-tool {
+  display: flex;
+  flex-direction: column;
+  gap: $space-lg;
+}
+
+.uuid-tool__count {
+  display: flex;
+  flex-direction: column;
+  gap: $space-sm;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text);
+
+  input {
+    min-height: $touch-min;
+    max-width: 8rem;
+    padding: $space-sm $space-md;
+    font-size: 1rem;
+    border: 1px solid var(--border);
+    border-radius: $radius-md;
+    background: var(--surface);
+    color: var(--text);
+  }
+}

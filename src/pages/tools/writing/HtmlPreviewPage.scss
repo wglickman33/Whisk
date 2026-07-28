@@ -1,0 +1,70 @@
+@use "../../../styles/tokens" as *;
+
+.html-preview {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  min-height: 400px;
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.html-preview__editor,
+.html-preview__output {
+  display: flex;
+  flex-direction: column;
+  gap: $space-sm;
+}
+
+.html-preview__label {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.html-preview__textarea {
+  flex: 1;
+  min-height: 400px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: $radius-md;
+  color: var(--text);
+  font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  padding: 1rem;
+  resize: none;
+  tab-size: 2;
+
+  &:focus {
+    border-color: var(--accent);
+    outline: none;
+  }
+}
+
+.html-preview__rendered {
+  flex: 1;
+  min-height: 400px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: $radius-md;
+  padding: 1rem 1.25rem;
+  overflow-y: auto;
+  color: var(--text);
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+
+.html-preview__notice {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+.html-preview__error {
+  margin: 0;
+  color: var(--error);
+}
