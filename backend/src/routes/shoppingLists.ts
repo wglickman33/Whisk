@@ -1,6 +1,15 @@
-import { Router, Request } from "express";
-import { authMiddleware } from "../middleware/auth.js";
+import { Router, Request, Response } from "express";
+import { authMiddleware, verifyAccessToken } from "../middleware/auth.js";
 import { prisma } from "../lib/prisma.js";
+import {
+  broadcastListEvent,
+  registerStreamConnection,
+  subscribeUserToList,
+  unsubscribeUserFromList,
+  unregisterStreamConnection,
+  type ShoppingListEventPayload,
+  type ShoppingListStreamEvent,
+} from "../utils/shoppingListEvents.js";
 import {
   isValidUuid,
   sanitizeString,
@@ -22,6 +31,62 @@ import {
 
 const router = Router();
 type AuthRequest = Request & { userId?: string };
+
+function emitListEvent(
+  list: { id: string; name: string },
+  actorUserId: string,
+  event: ShoppingListEventPayload
+): void {
+  broadcastListEvent({
+    ...event,
+    listId: list.id,
+    listName: list.name,
+    actorUserId,
+  } as ShoppingListStreamEvent);
+}
+
+router.get("/stream", async (req: Request, res: Response) => {
+  const token = typeof req.query.token === "string" ? req.query.token : "";
+  const userId = token ? verifyAccessToken(token) : null;
+  if (!userId) {
+    res.status(401).json({ error: "Authentication required" });
+    return;
+  }
+
+  try {
+    const lists = await prisma.shoppingList.findMany({
+      where: {
+        OR: [{ ownerUserId: userId }, { members: { some: { userId } } }],
+      },
+      select: { id: true },
+    });
+
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache, no-transform");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no");
+    res.flushHeaders?.();
+
+    const listIds = lists.map((list) => list.id);
+    registerStreamConnection(userId, res, listIds);
+
+    res.write(": connected\n\n");
+
+    const keepAlive = setInterval(() => {
+      res.write(": ping\n\n");
+    }, 25_000);
+
+    req.on("close", () => {
+      clearInterval(keepAlive);
+      unregisterStreamConnection(userId, res, listIds);
+    });
+  } catch (err) {
+    console.error(err);
+    if (!res.headersSent) {
+      res.status(500).json({ error: "Failed to open event stream." });
+    }
+  }
+});
 
 router.use(authMiddleware);
 
@@ -62,12 +127,17 @@ router.post("/join", async (req: AuthRequest, res) => {
       await prisma.shoppingListMember.create({
         data: { listId: list.id, userId },
       });
+      subscribeUserToList(userId, list.id);
     }
 
     const refreshed = await prisma.shoppingList.findUniqueOrThrow({
       where: { id: list.id },
       include: listInclude,
     });
+
+    if (!alreadyMember) {
+      emitListEvent(refreshed, userId, { type: "list.updated" });
+    }
 
     res.json({ list: serializeList(refreshed, userId) });
   } catch (err) {
@@ -109,6 +179,9 @@ router.post("/", async (req: AuthRequest, res) => {
       include: listInclude,
     });
 
+    subscribeUserToList(userId, list.id);
+    emitListEvent(list, userId, { type: "list.updated" });
+
     res.status(201).json({ list: serializeList(list, userId) });
   } catch (err) {
     console.error(err);
@@ -142,6 +215,8 @@ router.patch("/:id", async (req: AuthRequest, res) => {
       data: { name },
       include: listInclude,
     });
+
+    emitListEvent(updated, userId, { type: "list.updated" });
 
     res.json({ list: serializeList(updated, userId) });
   } catch (err) {
@@ -199,10 +274,70 @@ router.post("/:id/leave", async (req: AuthRequest, res) => {
       where: { listId, userId },
     });
 
+    unsubscribeUserFromList(userId, listId);
+    emitListEvent(list, userId, { type: "list.updated" });
+
     res.status(204).send();
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to leave shopping list." });
+  }
+});
+
+router.delete("/:id/members/:memberUserId", async (req: AuthRequest, res) => {
+  try {
+    const userId = req.userId!;
+    const listId = req.params.id;
+    const memberUserId = req.params.memberUserId;
+    if (!isValidUuid(listId) || !isValidUuid(memberUserId)) {
+      res.status(400).json({ error: "Invalid id." });
+      return;
+    }
+
+    const list = await prisma.shoppingList.findFirst({
+      where: { id: listId, ownerUserId: userId },
+      include: listInclude,
+    });
+    if (!list) {
+      res.status(404).json({ error: "Shopping list not found." });
+      return;
+    }
+
+    if (memberUserId === userId) {
+      res.status(400).json({ error: "You cannot remove yourself as owner." });
+      return;
+    }
+
+    if (memberUserId === list.ownerUserId) {
+      res.status(400).json({ error: "Cannot remove the list owner." });
+      return;
+    }
+
+    const membership = await prisma.shoppingListMember.findFirst({
+      where: { listId, userId: memberUserId },
+    });
+    if (!membership) {
+      res.status(404).json({ error: "Member not found on this list." });
+      return;
+    }
+
+    await prisma.shoppingListMember.delete({
+      where: { listId_userId: { listId, userId: memberUserId } },
+    });
+
+    unsubscribeUserFromList(memberUserId, listId);
+
+    const refreshed = await prisma.shoppingList.findUniqueOrThrow({
+      where: { id: listId },
+      include: listInclude,
+    });
+
+    emitListEvent(refreshed, userId, { type: "list.updated" });
+
+    res.json({ list: serializeList(refreshed, userId) });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to remove member." });
   }
 });
 
@@ -276,6 +411,11 @@ router.post("/:id/items", async (req: AuthRequest, res) => {
       include: { addedBy: { select: memberUserSelect } },
     });
 
+    emitListEvent(list, userId, {
+      type: "item.created",
+      item: serializeItem(item),
+    });
+
     res.status(201).json({ item: serializeItem(item) });
   } catch (err) {
     console.error(err);
@@ -312,6 +452,12 @@ router.post("/:id/items/bulk", async (req: AuthRequest, res) => {
       return;
     }
 
+    const existingItems = await prisma.shoppingListItem.findMany({
+      where: { listId },
+      select: { id: true },
+    });
+    const beforeIds = new Set(existingItems.map((row) => row.id));
+
     await prisma.shoppingListItem.createMany({
       data: rows.map((row) => ({
         listId,
@@ -329,6 +475,14 @@ router.post("/:id/items/bulk", async (req: AuthRequest, res) => {
       include: { addedBy: { select: memberUserSelect } },
       orderBy: [{ checked: "asc" }, { createdAt: "asc" }],
     });
+
+    const created = items.filter((row) => !beforeIds.has(row.id));
+    if (created.length > 0) {
+      emitListEvent(list, userId, {
+        type: "items.bulk_created",
+        items: created.map(serializeItem),
+      });
+    }
 
     res.status(201).json({ items: items.map(serializeItem) });
   } catch (err) {
@@ -406,6 +560,11 @@ router.patch("/:id/items/:itemId", async (req: AuthRequest, res) => {
       include: { addedBy: { select: memberUserSelect } },
     });
 
+    emitListEvent(list, userId, {
+      type: "item.updated",
+      item: serializeItem(item),
+    });
+
     res.json({ item: serializeItem(item) });
   } catch (err) {
     console.error(err);
@@ -431,6 +590,8 @@ router.delete("/:id/items/checked", async (req: AuthRequest, res) => {
     await prisma.shoppingListItem.deleteMany({
       where: { listId, checked: true },
     });
+
+    emitListEvent(list, userId, { type: "items.cleared" });
 
     res.status(204).send();
   } catch (err) {
@@ -462,6 +623,8 @@ router.delete("/:id/items/:itemId", async (req: AuthRequest, res) => {
       res.status(404).json({ error: "Item not found." });
       return;
     }
+
+    emitListEvent(list, userId, { type: "item.deleted", itemId });
 
     res.status(204).send();
   } catch (err) {

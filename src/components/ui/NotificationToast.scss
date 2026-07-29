@@ -73,10 +73,30 @@
 
 .notification-toast__content {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: $space-sm;
   flex: 1;
   min-width: 0;
+}
+
+.notification-toast__text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.notification-toast__action {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--accent);
+  text-decoration: none;
+  transition: color $transition-base ease, opacity $transition-base ease;
+
+  &:hover {
+    color: var(--accent-hover);
+    text-decoration: underline;
+  }
 }
 
 .notification-toast__icon {

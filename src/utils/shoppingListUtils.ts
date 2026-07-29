@@ -1,4 +1,5 @@
 import { formatQuantity } from "./formatQuantity";
+import { inferIngredientCategory } from "./inferIngredientCategory";
 import type { Ingredient, ShoppingListItemInput } from "../api/client";
 
 export const UNCategorized_LABEL = "Other";
@@ -12,11 +13,12 @@ export function formatIngredientQuantity(quantity: number, unit: string): string
 }
 
 export function ingredientToListItem(ing: Pick<Ingredient, "name" | "quantity" | "unit" | "notes">): ShoppingListItemInput {
+  const name = ing.name.trim();
   return {
-    name: ing.name.trim(),
+    name,
     quantity: formatIngredientQuantity(ing.quantity, ing.unit),
     note: ing.notes?.trim() || null,
-    category: null,
+    category: inferIngredientCategory(name),
   };
 }
 
@@ -26,11 +28,12 @@ export function scaledIngredientToListItem(item: {
   unit: string;
   notes: string | null;
 }): ShoppingListItemInput {
+  const name = item.name.trim();
   return {
-    name: item.name.trim(),
+    name,
     quantity: formatIngredientQuantity(item.quantity, item.unit),
     note: item.notes?.trim() || null,
-    category: null,
+    category: inferIngredientCategory(name),
   };
 }
 
@@ -79,6 +82,24 @@ export function itemNameSuggestions(
   }
 
   return matches;
+}
+
+export function categorySuggestions(
+  categories: (string | undefined)[],
+  limit = 8
+): string[] {
+  const seen = new Set<string>();
+  const results: string[] = [];
+  for (const raw of categories) {
+    const label = raw?.trim();
+    if (!label || label === UNCategorized_LABEL) continue;
+    const key = label.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    results.push(label);
+    if (results.length >= limit) break;
+  }
+  return results.sort((a, b) => a.localeCompare(b));
 }
 
 export const SELECTED_LIST_KEY = "whisk-selected-shopping-list";

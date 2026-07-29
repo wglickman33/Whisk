@@ -37,11 +37,17 @@ export function PrivacyPage() {
         <ul>
           <li>Email address and hashed password</li>
           <li>Recipes, folders, tags, and ingredients</li>
-          <li>Shopping list items</li>
-          <li>Preferences such as theme and default unit category</li>
+          <li>Shopping list items, categories, and which list they belong to</li>
+          <li>Shared lists: list membership, share codes, and who added each item (visible to list members)</li>
+          <li>Preferences such as light, dark, or auto theme and default unit category</li>
         </ul>
         <p>
           Recipe URL import sends the URL (not your local files) to our API so we can fetch and parse the page.
+        </p>
+        <p>
+          When you use a shared shopping list, Whisk opens a live connection (Server-Sent Events) to our API so
+          changes from other members appear in real time. This is only used for list sync—not for analytics or
+          advertising.
         </p>
       </section>
 
@@ -59,8 +65,8 @@ export function PrivacyPage() {
         <h2>Local storage in your browser</h2>
         <ul>
           <li>Sign-in token (JWT) so you stay logged in</li>
-          <li>Theme and settings before or between syncs</li>
-          <li>Shopping list cache when signed out</li>
+          <li>Theme and settings before or between syncs (including when signed out)</li>
+          <li>Shopping list cache and selected list when signed out</li>
         </ul>
       </section>
 

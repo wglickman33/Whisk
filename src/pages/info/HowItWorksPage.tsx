@@ -71,13 +71,40 @@ export function HowItWorksPage() {
         <ol>
           <li>Register or sign in from the sidebar.</li>
           <li>Your session token is stored in the browser.</li>
-          <li>Recipes, shopping list, and settings load from the API.</li>
+          <li>Recipes, shopping lists, and settings load from the API.</li>
           <li>Changes save back to Postgres on Heroku.</li>
         </ol>
         <p>
           Sign out anytime. Local-only shopping list data can migrate to your account on first login if the
           server list is empty.
         </p>
+        <p>
+          <strong>Settings</strong> (theme and default unit category) work locally when signed out and sync to
+          your account when signed in. Theme supports light, dark, or auto (follows your device&apos;s system
+          appearance).
+        </p>
+      </section>
+
+      <section className="static-page__section">
+        <h2>Shopping lists</h2>
+        <ol>
+          <li>Create multiple lists, rename them, and switch between them from the list header.</li>
+          <li>Share a list via link or code so other Whisk users can join.</li>
+          <li>Add items manually, from recipes, or with aisle categories inferred from ingredient names.</li>
+          <li>When adding recipe ingredients, Whisk can skip duplicates or add only missing items.</li>
+          <li>Tap an item to check it off; use the pencil icon to edit.</li>
+          <li>While a shared list is open, changes from other members update in real time over a live API connection.</li>
+        </ol>
+      </section>
+
+      <section className="static-page__section">
+        <h2>Recipes</h2>
+        <ol>
+          <li>Save recipes with folders, tags, and scaled servings.</li>
+          <li>Import from a URL or from a Whisk JSON export.</li>
+          <li>Export as Whisk JSON (full round-trip), PDF, or plain text.</li>
+          <li>Send ingredients to your shopping list with optional deduplication.</li>
+        </ol>
       </section>
 
       <section className="static-page__section">

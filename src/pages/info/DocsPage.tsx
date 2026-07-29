@@ -49,17 +49,24 @@ export function DocsPage() {
 
         <DocSection title="Data boundaries">
           <p><strong>Stays on your device:</strong> file conversions, image tools, unit converter calculations.</p>
-          <p><strong>Stored on server when signed in:</strong> account, recipes, folders, tags, shopping list, theme and unit preferences.</p>
+          <p>
+            <strong>Stored on server when signed in:</strong> account, recipes, folders, tags, shopping lists
+            (including shared lists, membership, and share codes), theme and unit preferences.
+          </p>
+          <p>
+            <strong>Live connections:</strong> shared shopping lists use Server-Sent Events to our API for
+            real-time updates between members—not third-party analytics.
+          </p>
         </DocSection>
 
         <DocSection title="Features">
           <ul>
             <li><strong>File converter</strong>: Images, audio, video, documents, and data formats (see Capabilities)</li>
             <li><strong>Image tools</strong>: Crop, resize, compress, remove background, QR, markdown preview</li>
-            <li><strong>Unit converter</strong>: Volume, weight, temperature, length</li>
-            <li><strong>Recipes</strong>: CRUD, URL import, folders, tags, search</li>
-            <li><strong>Shopping list</strong>: Syncs when signed in; local fallback when signed out</li>
-            <li><strong>Settings</strong>: Theme and default unit category with server sync</li>
+            <li><strong>Unit converter</strong>: Volume, weight, length, area, time, speed, pressure, energy, data, temperature</li>
+            <li><strong>Recipes</strong>: CRUD, URL import, folders, tags, search; export as Whisk JSON, PDF, or plain text; import Whisk JSON</li>
+            <li><strong>Shopping list</strong>: Multiple lists, share codes, member collaboration, aisle categories, recipe import with dedupe, realtime sync via SSE; local fallback when signed out</li>
+            <li><strong>Settings</strong>: Light, dark, or auto theme (system); default unit category; account section when signed in; local prefs for guests</li>
             <li><strong>Auth</strong>: Register, sign in, forgot/reset password</li>
           </ul>
         </DocSection>

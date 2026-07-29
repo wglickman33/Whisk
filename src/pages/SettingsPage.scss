@@ -1,4 +1,5 @@
 @use "../styles/tokens" as *;
+@use "../styles/interactive" as *;
 
 .settings-page {
   max-width: 480px;
@@ -19,9 +20,29 @@
     }
   }
 
+  &__banner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: $space-md;
+    margin-bottom: $space-xl;
+    padding: $space-md $space-lg;
+    border: 1px solid var(--border);
+    border-radius: $radius-md;
+    background: var(--bg-elevated);
+
+    p {
+      flex: 1;
+      margin: 0;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+  }
+
   &__hint {
+    margin: $space-xs 0 0;
     color: var(--text-muted);
-    margin-bottom: $space-md;
+    font-size: 0.8rem;
   }
 
   &__btn {
@@ -56,19 +77,162 @@
     display: flex;
     flex-direction: column;
     gap: $space-xs;
+  }
 
-    span {
+  &__label {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+
+  &__segmented {
+    display: flex;
+    gap: 2px;
+    padding: 3px;
+    border: 1px solid var(--border);
+    border-radius: $radius-sm;
+    background: var(--surface);
+  }
+
+  &__segment {
+    flex: 1;
+    padding: $space-sm $space-md;
+    border: none;
+    border-radius: calc(#{$radius-sm} - 2px);
+    background: transparent;
+    color: var(--text-muted);
+    font: inherit;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+
+    &:hover:not(&--active) {
+      color: var(--text);
+    }
+
+    &--active {
+      background: var(--accent);
+      color: white;
+    }
+  }
+
+  select {
+    padding: $space-sm $space-md;
+    border: 1px solid var(--border);
+    border-radius: $radius-sm;
+    background: var(--surface);
+    color: var(--text);
+    font: inherit;
+  }
+
+  &__profile {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: $space-xs $space-md;
+    margin: 0 0 $space-lg;
+
+    dt {
+      margin: 0;
       font-size: 0.85rem;
       color: var(--text-muted);
     }
 
-    select {
-      padding: $space-sm $space-md;
-      border: 1px solid var(--border);
-      border-radius: $radius-sm;
-      background: var(--surface);
+    dd {
+      margin: 0;
+      font-size: 0.95rem;
       color: var(--text);
-      font: inherit;
+      word-break: break-word;
     }
+  }
+
+  &__actions {
+    display: flex;
+    flex-direction: column;
+    gap: $space-sm;
+  }
+
+  &__action-btn {
+    @include transition-interactive;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: $space-sm $space-md;
+    border: 1px solid transparent;
+    border-radius: $radius-md;
+    font: inherit;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    &--password {
+      background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+      border-color: color-mix(in srgb, var(--accent) 38%, var(--border));
+      color: var(--accent);
+
+      &:hover {
+        background: color-mix(in srgb, var(--accent) 20%, var(--surface));
+        border-color: var(--accent);
+        color: var(--accent-hover);
+      }
+
+      &:active {
+        background: color-mix(in srgb, var(--accent) 28%, var(--surface));
+      }
+    }
+
+    &--signout {
+      background: var(--surface);
+      border-color: var(--border);
+      color: var(--text-muted);
+
+      &:hover {
+        background: color-mix(in srgb, var(--error) 14%, var(--surface));
+        border-color: color-mix(in srgb, var(--error) 50%, var(--border));
+        color: var(--error);
+      }
+
+      &:active {
+        background: color-mix(in srgb, var(--error) 22%, var(--surface));
+      }
+    }
+  }
+
+  &__save-row {
+    margin-bottom: $space-xl;
+  }
+
+  &__save-btn {
+    width: 100%;
+    padding: $space-sm $space-lg;
+    border: none;
+    border-radius: $radius-md;
+    background: var(--accent);
+    color: white;
+    font: inherit;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color $transition-base ease, opacity $transition-base ease;
+
+    &:hover:not(:disabled) {
+      background: var(--accent-hover);
+    }
+
+    &:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+  }
+
+  &__save-hint {
+    margin: $space-xs 0 0;
+    font-size: 0.8rem;
+    color: var(--text-muted);
   }
 }

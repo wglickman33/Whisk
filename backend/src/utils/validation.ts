@@ -24,7 +24,7 @@ export const LIMITS = {
   tagLabelMax: 50,
 } as const;
 
-const THEMES = new Set(["light", "dark"]);
+const THEMES = new Set(["light", "dark", "auto"]);
 const UNIT_CATEGORIES = new Set([
   "volume", "weight", "length", "area", "time",
   "speed", "pressure", "energy", "data", "temp",
@@ -106,7 +106,7 @@ export function validateBulkShoppingListItems(items: unknown): string | null {
 
 export function validatePreferences(body: Record<string, unknown>): string | null {
   if (body.theme != null && (typeof body.theme !== "string" || !THEMES.has(body.theme))) {
-    return "Theme must be light or dark.";
+    return "Theme must be light, dark, or auto.";
   }
   if (
     body.defaultUnitCategory != null &&

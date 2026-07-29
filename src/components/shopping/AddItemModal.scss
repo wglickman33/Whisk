@@ -1,0 +1,132 @@
+@use "../../styles/tokens" as *;
+@use "../../styles/interactive" as *;
+
+.add-item-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  background: color-mix(in srgb, var(--text) 35%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.add-item-modal {
+  width: min(100%, 22rem);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: $radius-md;
+  overflow: hidden;
+}
+
+.add-item-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--border);
+
+  h2 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--text);
+  }
+}
+
+.add-item-modal__close {
+  @include modal-close-button;
+}
+
+.add-item-modal__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 1rem;
+}
+
+.add-item-modal__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.88rem;
+  color: var(--text);
+
+  input {
+    padding: 0.55rem 0.75rem;
+    min-height: $touch-min;
+    font-size: 1rem;
+    font-family: inherit;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: $radius-sm;
+    color: var(--text);
+    transition: border-color $transition-base ease;
+
+    &:focus {
+      border-color: var(--accent);
+      outline: none;
+    }
+
+    &:disabled {
+      opacity: 0.6;
+    }
+  }
+}
+
+.add-item-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.add-item-modal__cancel,
+.add-item-modal__submit {
+  padding: 0.5rem 1rem;
+  min-height: 2.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: inherit;
+  border-radius: $radius-sm;
+  cursor: pointer;
+  transition:
+    background-color $transition-base ease,
+    border-color $transition-base ease,
+    color $transition-base ease,
+    transform $transition-base ease;
+
+  &:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+}
+
+.add-item-modal__cancel {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+
+  &:hover:not(:disabled) {
+    color: var(--text);
+    border-color: var(--border-hover);
+    background: var(--surface-hover);
+  }
+}
+
+.add-item-modal__submit {
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  color: white;
+
+  &:hover:not(:disabled) {
+    background: var(--accent-hover);
+    border-color: var(--accent-hover);
+  }
+}

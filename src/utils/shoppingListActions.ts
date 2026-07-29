@@ -12,6 +12,11 @@ export type AddToListResult =
   | { status: "pick"; lists: ShoppingList[]; items: ShoppingListItemInput[] }
   | { status: "empty" };
 
+export type AddTargetResult =
+  | { status: "ready"; listId: string; listName: string; items: ShoppingListItemInput[] }
+  | { status: "pick"; lists: ShoppingList[]; items: ShoppingListItemInput[] }
+  | { status: "empty" };
+
 export function resolvePreferredListId(lists: ShoppingList[]): string | null {
   if (lists.length === 0) return null;
   const stored = getStoredListId();
@@ -20,36 +25,44 @@ export function resolvePreferredListId(lists: ShoppingList[]): string | null {
   return null;
 }
 
-export async function prepareAddToShoppingList(
+/** Resolve which list to add to without writing items yet. */
+export async function resolveAddTarget(
   items: ShoppingListItemInput[]
-): Promise<AddToListResult> {
+): Promise<AddTargetResult> {
   if (items.length === 0) return { status: "empty" };
 
   const { lists } = await shoppingListsApi.list();
   if (lists.length === 0) {
     const { list } = await shoppingListsApi.create(DEFAULT_LIST_NAME);
     storeListId(list.id);
-    await shoppingListsApi.bulkAdd(list.id, items);
-    return { status: "added", listId: list.id, listName: list.name };
+    return { status: "ready", listId: list.id, listName: list.name, items };
   }
 
   if (lists.length === 1) {
-    await shoppingListsApi.bulkAdd(lists[0].id, items);
-    storeListId(lists[0].id);
-    return { status: "added", listId: lists[0].id, listName: lists[0].name };
+    return { status: "ready", listId: lists[0].id, listName: lists[0].name, items };
   }
 
   const preferredId = resolvePreferredListId(lists);
   if (preferredId) {
     const preferred = lists.find((list) => list.id === preferredId);
     if (preferred) {
-      await shoppingListsApi.bulkAdd(preferred.id, items);
-      storeListId(preferred.id);
-      return { status: "added", listId: preferred.id, listName: preferred.name };
+      return { status: "ready", listId: preferred.id, listName: preferred.name, items };
     }
   }
 
   return { status: "pick", lists, items };
+}
+
+export async function prepareAddToShoppingList(
+  items: ShoppingListItemInput[]
+): Promise<AddToListResult> {
+  const target = await resolveAddTarget(items);
+  if (target.status === "empty") return { status: "empty" };
+  if (target.status === "pick") return target;
+
+  await shoppingListsApi.bulkAdd(target.listId, target.items);
+  storeListId(target.listId);
+  return { status: "added", listId: target.listId, listName: target.listName };
 }
 
 export async function bulkAddToList(

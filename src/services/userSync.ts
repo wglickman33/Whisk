@@ -1,5 +1,11 @@
 import { preferencesApi, shoppingListsApi } from "../api/client";
-import { useSettingsStore } from "../store/settingsStore";
+import {
+  hasPersistedSettings,
+  parseTheme,
+  parseUnitCategory,
+  useSettingsStore,
+  waitForSettingsHydration,
+} from "../store/settingsStore";
 import { scaledIngredientToListItem } from "../utils/shoppingListUtils";
 
 const LEGACY_STORAGE_KEY = "recipe-app-shopping-list";
@@ -38,12 +44,36 @@ export function shouldMigrateLegacyShoppingList(
   return serverListCount === 0 && localCount > 0;
 }
 
-/** Pull server preferences; migrate legacy local shopping list if the user has none. */
-export async function syncUserDataFromServer(): Promise<void> {
+async function syncPreferencesFromServer(): Promise<void> {
+  await waitForSettingsHydration();
+
   const prefs = await preferencesApi.get();
   const settings = useSettingsStore.getState();
-  settings.applyFromServer(prefs.theme as "light" | "dark", prefs.defaultUnitCategory);
+  const localTheme = settings.theme;
+  const localCategory = settings.defaultUnitCategory;
+  const serverTheme = parseTheme(prefs.theme);
+  const serverCategory = parseUnitCategory(prefs.defaultUnitCategory);
+
+  const differs = localTheme !== serverTheme || localCategory !== serverCategory;
+
+  if (differs && hasPersistedSettings()) {
+    try {
+      await settings.savePreferences();
+      return;
+    } catch {
+      settings.applyFromServer(prefs.theme, prefs.defaultUnitCategory);
+      settings.markSynced();
+      return;
+    }
+  }
+
+  settings.applyFromServer(prefs.theme, prefs.defaultUnitCategory);
   settings.markSynced();
+}
+
+/** Pull server preferences; migrate legacy local shopping list if the user has none. */
+export async function syncUserDataFromServer(): Promise<void> {
+  await syncPreferencesFromServer();
 
   const { lists } = await shoppingListsApi.list();
   const legacyItems = readLegacyLocalItems();

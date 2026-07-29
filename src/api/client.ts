@@ -127,7 +127,7 @@ export interface RecipeInput {
     notes?: string | null;
     isOptional?: boolean;
   }[];
-  steps?: { instruction: string; timerMinutes?: number | null }[];
+  steps?: { instruction: string; timerMinutes?: number | null; imageUrl?: string | null }[];
 }
 
 export const recipesApi = {
@@ -228,6 +228,10 @@ export const shoppingListsApi = {
     api<void>(`/api/shopping-lists/${listId}`, { method: "DELETE" }),
   leave: (listId: string) =>
     api<void>(`/api/shopping-lists/${listId}/leave`, { method: "POST" }),
+  removeMember: (listId: string, memberUserId: string) =>
+    api<{ list: ShoppingList }>(`/api/shopping-lists/${listId}/members/${memberUserId}`, {
+      method: "DELETE",
+    }),
 };
 
 export const preferencesApi = {

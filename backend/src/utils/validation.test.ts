@@ -107,6 +107,10 @@ describe("validatePreferences", () => {
     expect(validatePreferences({ theme: "light" })).toBeNull();
   });
 
+  it("accepts auto theme", () => {
+    expect(validatePreferences({ theme: "auto" })).toBeNull();
+  });
+
   it("rejects invalid theme", () => {
     expect(validatePreferences({ theme: "neon" })).toMatch(/theme/i);
   });

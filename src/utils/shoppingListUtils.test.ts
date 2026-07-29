@@ -6,6 +6,7 @@ import {
   sortCategoryLabels,
   ingredientToListItem,
   scaledIngredientToListItem,
+  categorySuggestions,
   getStoredListId,
   storeListId,
   clearStoredListId,
@@ -66,7 +67,7 @@ describe("ingredient conversions", () => {
       name: "flour",
       quantity: "2 cups",
       note: "sifted",
-      category: null,
+      category: "Pantry & Dry Goods",
     });
   });
 
@@ -82,8 +83,16 @@ describe("ingredient conversions", () => {
       name: "Sugar",
       quantity: "½ cup",
       note: null,
-      category: null,
+      category: "Pantry & Dry Goods",
     });
+  });
+});
+
+describe("categorySuggestions", () => {
+  it("returns unique sorted categories excluding Other", () => {
+    expect(
+      categorySuggestions(["Dairy", "Produce", "Dairy", undefined, "Other"])
+    ).toEqual(["Dairy", "Produce"]);
   });
 });
 

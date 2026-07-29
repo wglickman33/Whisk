@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
 import { useAuthModalStore } from "../store/authModalStore";
 import {
@@ -11,37 +12,62 @@ import {
 import { toastSuccess, toastError } from "../store/toastStore";
 import {
   groupActiveItemsByCategory,
-  itemNameSuggestions,
+  categorySuggestions,
   sortCategoryLabels,
   getStoredListId,
   storeListId,
   clearStoredListId,
   ingredientToListItem,
 } from "../utils/shoppingListUtils";
+import { inferIngredientCategory } from "../utils/inferIngredientCategory";
 import { DEFAULT_LIST_NAME } from "../utils/shoppingListActions";
+import { buildShoppingListJoinUrl } from "../utils/shoppingListShare";
+import { findDuplicateItemNames, filterNonDuplicateItems } from "../utils/shoppingListDedupe";
+import { useShoppingActivityStore } from "../store/shoppingActivityStore";
+import {
+  applyStreamEventToItems,
+  useShoppingListRealtimeStore,
+} from "../store/shoppingListRealtimeStore";
+import { DuplicateItemsModal } from "../components/shopping/DuplicateItemsModal";
+import { AddItemModal, type AddItemFormValues } from "../components/shopping/AddItemModal";
 import { useClickOutside } from "../components/shopping/ListPickerModal";
+import {
+  ShoppingListItemRow,
+  type ItemEditDraft,
+} from "../components/shopping/ShoppingListItemRow";
 import { IconShoppingList } from "../components/ui/SidebarIcons";
 import "./ShoppingListPage.scss";
 
-const POLL_MS = 5000;
 const LIST_POLL_MS = 30000;
 
 function ShareCodeModal({
   code,
+  shareUrl,
   loading,
   onClose,
 }: {
   code: string | null;
+  shareUrl: string | null;
   loading: boolean;
   onClose: () => void;
 }) {
-  const copy = async () => {
+  const copyCode = async () => {
     if (!code) return;
     try {
       await navigator.clipboard.writeText(code);
       toastSuccess("Share code copied.");
     } catch {
       toastError("Could not copy code.");
+    }
+  };
+
+  const copyLink = async () => {
+    if (!shareUrl) return;
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      toastSuccess("Share link copied.");
+    } catch {
+      toastError("Could not copy link.");
     }
   };
 
@@ -64,17 +90,33 @@ function ShareCodeModal({
         </div>
         <div className="shopping-list-modal__body">
           <p className="shopping-list-modal__hint">
-            Share this code with someone who already has a Whisk account. They can join instantly.
+            Share the link or code with someone who already has a Whisk account.
           </p>
           {loading ? (
             <p className="shopping-list-modal__loading">Generating code…</p>
           ) : (
-            <div className="shopping-list-modal__code-row">
-              <code className="shopping-list-modal__code">{code}</code>
-              <button type="button" className="shopping-list-modal__copy" onClick={copy} disabled={!code}>
-                Copy
-              </button>
-            </div>
+            <>
+              <div className="shopping-list-modal__code-row">
+                <code className="shopping-list-modal__code">{code}</code>
+                <button type="button" className="shopping-list-modal__copy" onClick={copyCode} disabled={!code}>
+                  Copy code
+                </button>
+              </div>
+              {shareUrl && (
+                <div className="shopping-list-modal__link-row">
+                  <input
+                    type="text"
+                    className="shopping-list-modal__link-input"
+                    value={shareUrl}
+                    readOnly
+                    aria-label="Share link"
+                  />
+                  <button type="button" className="shopping-list-modal__copy" onClick={copyLink}>
+                    Copy link
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -156,6 +198,14 @@ function RecipePickerModal({
   onClose: () => void;
   onPick: (recipe: Recipe) => void;
 }) {
+  const [search, setSearch] = useState("");
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return recipes;
+    return recipes.filter((recipe) => recipe.title.toLowerCase().includes(q));
+  }, [recipes, search]);
+
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -179,18 +229,32 @@ function RecipePickerModal({
           ) : recipes.length === 0 ? (
             <p className="shopping-list-modal__hint">No recipes yet. Create one from the Recipes page.</p>
           ) : (
-            <ul className="shopping-list-recipe-picker">
-              {recipes.map((recipe) => (
-                <li key={recipe.id}>
-                  <button type="button" className="shopping-list-recipe-picker__btn" onClick={() => onPick(recipe)}>
-                    <span className="shopping-list-recipe-picker__title">{recipe.title}</span>
-                    <span className="shopping-list-recipe-picker__meta">
-                      {recipe.ingredients.length} ingredient{recipe.ingredients.length === 1 ? "" : "s"}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
+            <>
+              <input
+                type="search"
+                className="shopping-list-modal__search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search recipes…"
+                aria-label="Search recipes"
+              />
+              {filtered.length === 0 ? (
+                <p className="shopping-list-modal__hint">No recipes match your search.</p>
+              ) : (
+                <ul className="shopping-list-recipe-picker">
+                  {filtered.map((recipe) => (
+                    <li key={recipe.id}>
+                      <button type="button" className="shopping-list-recipe-picker__btn" onClick={() => onPick(recipe)}>
+                        <span className="shopping-list-recipe-picker__title">{recipe.title}</span>
+                        <span className="shopping-list-recipe-picker__meta">
+                          {recipe.ingredients.length} ingredient{recipe.ingredients.length === 1 ? "" : "s"}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -200,15 +264,20 @@ function RecipePickerModal({
 
 export function ShoppingListPage() {
   const isSignedIn = useAuthStore((s) => s.isSignedIn);
+  const isLoading = useAuthStore((s) => s.isLoading);
   const openAuthModal = useAuthModalStore((s) => s.openAuthModal);
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [lists, setLists] = useState<ShoppingList[]>([]);
   const [activeListId, setActiveListId] = useState<string | null>(null);
   const [items, setItems] = useState<ShoppingListItem[]>([]);
   const [loadingLists, setLoadingLists] = useState(false);
   const [loadingItems, setLoadingItems] = useState(false);
-  const [quickAdd, setQuickAdd] = useState("");
+  const [addItemOpen, setAddItemOpen] = useState(false);
   const [addingItem, setAddingItem] = useState(false);
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [editSaving, setEditSaving] = useState(false);
+  const [memberRemovingId, setMemberRemovingId] = useState<string | null>(null);
   const [checkedOpen, setCheckedOpen] = useState(true);
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
@@ -228,10 +297,17 @@ export function ShoppingListPage() {
   const [clearConfirm, setClearConfirm] = useState(false);
   const [listActionSaving, setListActionSaving] = useState(false);
   const [recipeAdding, setRecipeAdding] = useState(false);
+  const [dupeConfirm, setDupeConfirm] = useState<{
+    names: string[];
+    bulkItems: ReturnType<typeof ingredientToListItem>[];
+  } | null>(null);
+  const subscribeRealtime = useShoppingListRealtimeStore((s) => s.subscribe);
   const switcherRef = useRef<HTMLDivElement>(null);
   const optionsRef = useRef<HTMLDivElement>(null);
+  const itemsRef = useRef<ShoppingListItem[]>([]);
 
   const activeList = lists.find((l) => l.id === activeListId) ?? null;
+  const shareUrl = shareCode ? buildShoppingListJoinUrl(shareCode) : null;
 
   useClickOutside(switcherRef, () => setSwitcherOpen(false), switcherOpen);
   useClickOutside(optionsRef, () => setOptionsOpen(false), optionsOpen);
@@ -259,6 +335,7 @@ export function ShoppingListPage() {
     if (!quiet) setLoadingItems(true);
     try {
       const { items: fetched } = await shoppingListsApi.getItems(listId);
+      itemsRef.current = fetched;
       setItems(fetched);
     } catch (err) {
       const message = err instanceof Error ? err.message : "";
@@ -276,27 +353,57 @@ export function ShoppingListPage() {
 
   useEffect(() => {
     if (!isSignedIn) return;
+    useShoppingActivityStore.getState().markAllRead();
+  }, [isSignedIn]);
+
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
+
+  useEffect(() => {
+    const code = searchParams.get("code")?.trim();
+    if (!code) return;
+    if (!isSignedIn) {
+      openAuthModal("login");
+      return;
+    }
+    setJoinCode(code.toUpperCase());
+    setJoinOpen(true);
+    setSearchParams({}, { replace: true });
+  }, [isSignedIn, searchParams, setSearchParams, openAuthModal]);
+
+  useEffect(() => {
+    if (!isSignedIn) return;
     void loadLists();
   }, [isSignedIn, loadLists]);
 
   useEffect(() => {
     if (!activeListId) {
       setItems([]);
+      itemsRef.current = [];
       return;
     }
     void loadItems(activeListId);
   }, [activeListId, loadItems]);
 
   useEffect(() => {
-    if (!isSignedIn || !activeListId) return;
-    const timer = setInterval(() => {
-      void loadItems(activeListId, true);
-    }, POLL_MS);
-    return () => clearInterval(timer);
-  }, [isSignedIn, activeListId, loadItems]);
+    if (!activeListId) return;
+    return subscribeRealtime((event) => {
+      if (event.listId !== activeListId) return;
+      if (event.type === "list.updated") {
+        void loadLists();
+        return;
+      }
+      setItems((prev) => {
+        const next = applyStreamEventToItems(prev, event);
+        itemsRef.current = next;
+        return next;
+      });
+    });
+  }, [activeListId, subscribeRealtime, loadLists]);
 
   useEffect(() => {
-    if (!isSignedIn) return;
+    if (!isSignedIn || !activeListId) return;
     const timer = setInterval(() => {
       void shoppingListsApi.list().then(({ lists: fetched }) => {
         setLists(fetched);
@@ -311,14 +418,9 @@ export function ShoppingListPage() {
     return () => clearInterval(timer);
   }, [isSignedIn, activeListId]);
 
-  const pastNames = useMemo(
-    () => items.map((item) => item.name),
+  const categoryOptions = useMemo(
+    () => categorySuggestions(items.map((item) => item.category)),
     [items]
-  );
-
-  const suggestions = useMemo(
-    () => itemNameSuggestions(pastNames, quickAdd),
-    [pastNames, quickAdd]
   );
 
   const activeItems = useMemo(() => items.filter((i) => !i.checked), [items]);
@@ -351,19 +453,64 @@ export function ShoppingListPage() {
     }
   };
 
-  const handleQuickAdd = async (nameOverride?: string) => {
-    const name = (nameOverride ?? quickAdd).trim();
-    if (!name || !activeListId) return;
+  const handleAddItem = async (values: AddItemFormValues) => {
+    if (!activeListId) return;
+    const category =
+      values.category.trim() ||
+      inferIngredientCategory(values.name) ||
+      null;
     setAddingItem(true);
     try {
-      const { item } = await shoppingListsApi.addItem(activeListId, { name });
+      const { item } = await shoppingListsApi.addItem(activeListId, {
+        name: values.name,
+        quantity: values.quantity.trim() || undefined,
+        category,
+      });
       setItems((prev) => [...prev, item]);
-      setQuickAdd("");
+      itemsRef.current = [...itemsRef.current, item];
+      setAddItemOpen(false);
       toastSuccess("Item added.");
     } catch (err) {
       toastError(err instanceof Error ? err.message : "Failed to add item.");
     } finally {
       setAddingItem(false);
+    }
+  };
+
+  const handleSaveEdit = async (item: ShoppingListItem, draft: ItemEditDraft) => {
+    if (!activeListId) return;
+    setEditSaving(true);
+    try {
+      const { item: updated } = await shoppingListsApi.updateItem(activeListId, item.id, {
+        name: draft.name,
+        quantity: draft.quantity || undefined,
+        note: draft.note || undefined,
+        category: draft.category || undefined,
+      });
+      setItems((prev) => prev.map((row) => (row.id === item.id ? updated : row)));
+      itemsRef.current = itemsRef.current.map((row) => (row.id === item.id ? updated : row));
+      setEditingItemId(null);
+      toastSuccess("Item updated.");
+    } catch (err) {
+      toastError(err instanceof Error ? err.message : "Failed to update item.");
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
+  const handleRemoveMember = async (memberUserId: string, memberName: string) => {
+    if (!activeListId || !activeList?.isOwner) return;
+    if (memberUserId === activeList.ownerUserId) return;
+    if (!window.confirm(`Remove ${memberName} from this list?`)) return;
+    setMemberRemovingId(memberUserId);
+    try {
+      const { list } = await shoppingListsApi.removeMember(activeListId, memberUserId);
+      setLists((prev) => prev.map((row) => (row.id === list.id ? list : row)));
+      toastSuccess(`${memberName} removed from the list.`);
+    } catch (err) {
+      toastError(err instanceof Error ? err.message : "Failed to remove member.");
+    } finally {
+      setMemberRemovingId(null);
     }
   };
 
@@ -529,15 +676,26 @@ export function ShoppingListPage() {
 
   const handleRecipePick = async (recipe: Recipe) => {
     if (!activeListId || recipeAdding) return;
-    const bulkItems = recipe.ingredients.map(ingredientToListItem);
+    const bulkItems = recipe.ingredients
+      .filter((ing) => !ing.isOptional)
+      .map(ingredientToListItem);
     if (bulkItems.length === 0) {
       toastError("This recipe has no ingredients.");
       return;
     }
+
+    const dupes = findDuplicateItemNames(bulkItems, items);
+    if (dupes.length > 0) {
+      setDupeConfirm({ names: dupes, bulkItems });
+      setRecipePickerOpen(false);
+      return;
+    }
+
     setRecipeAdding(true);
     try {
       const { items: updated } = await shoppingListsApi.bulkAdd(activeListId, bulkItems);
       setItems(updated);
+      itemsRef.current = updated;
       setRecipePickerOpen(false);
       toastSuccess(`Added ${bulkItems.length} items from "${recipe.title}".`);
     } catch (err) {
@@ -547,7 +705,23 @@ export function ShoppingListPage() {
     }
   };
 
-  if (!isSignedIn) {
+  const confirmDuplicateRecipeAdd = async (itemsToAdd: ReturnType<typeof ingredientToListItem>[]) => {
+    if (!activeListId || itemsToAdd.length === 0) return;
+    setRecipeAdding(true);
+    try {
+      const { items: updated } = await shoppingListsApi.bulkAdd(activeListId, itemsToAdd);
+      setItems(updated);
+      itemsRef.current = updated;
+      setDupeConfirm(null);
+      toastSuccess(`Added ${itemsToAdd.length} item${itemsToAdd.length === 1 ? "" : "s"}.`);
+    } catch (err) {
+      toastError(err instanceof Error ? err.message : "Failed to add ingredients.");
+    } finally {
+      setRecipeAdding(false);
+    }
+  };
+
+  if (!isLoading && !isSignedIn) {
     return (
       <div className="shopping-list-page">
         <h1 className="shopping-list-page__title">Shopping list</h1>
@@ -558,7 +732,7 @@ export function ShoppingListPage() {
                 <IconShoppingList />
               </span>
               <p className="shopping-list-page__guest-text">Sign in to create and share shopping lists.</p>
-              <p className="shopping-list-page__guest-sub">Collaborate with housemates — check off items in real time.</p>
+              <p className="shopping-list-page__guest-sub">Collaborate with housemates on shared grocery lists.</p>
               <button type="button" className="shopping-list-page__cta" onClick={() => openAuthModal("login")}>
                 Sign In
               </button>
@@ -605,6 +779,7 @@ export function ShoppingListPage() {
 
   return (
     <div className="shopping-list-page shopping-list-page--shell">
+      <div className="shopping-list-top">
       <header className="shopping-list-header">
         <div className="shopping-list-header__top">
           <div>
@@ -649,7 +824,11 @@ export function ShoppingListPage() {
               aria-expanded={optionsOpen}
               aria-label="List options"
             >
-              ⋯
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                <circle cx="5" cy="12" r="1.75" />
+                <circle cx="12" cy="12" r="1.75" />
+                <circle cx="19" cy="12" r="1.75" />
+              </svg>
             </button>
             {optionsOpen && (
               <div className="shopping-list-header__options-menu" role="menu">
@@ -694,8 +873,25 @@ export function ShoppingListPage() {
         {activeList && (
           <div className="shopping-list-header__members">
             {activeList.members.map((member) => (
-              <span key={member.id} className="shopping-list-header__avatar" title={member.name}>
-                {member.initial}
+              <span key={member.id} className="shopping-list-header__member">
+                <span
+                  className="shopping-list-header__avatar shopping-list-header__avatar--member"
+                  data-tooltip={member.name}
+                  aria-label={member.name}
+                >
+                  {member.initial}
+                </span>
+                {activeList.isOwner && member.id !== activeList.ownerUserId && (
+                  <button
+                    type="button"
+                    className="shopping-list-header__member-remove"
+                    onClick={() => void handleRemoveMember(member.id, member.name)}
+                    disabled={memberRemovingId === member.id}
+                    aria-label={`Remove ${member.name}`}
+                  >
+                    ×
+                  </button>
+                )}
               </span>
             ))}
             <button
@@ -710,41 +906,16 @@ export function ShoppingListPage() {
         )}
       </header>
 
-      <div className="shopping-list-quick-add">
-        <form
-          className="shopping-list-quick-add__field"
-          onSubmit={(e) => {
-            e.preventDefault();
-            void handleQuickAdd();
-          }}
+      <div className="shopping-list-add-trigger">
+        <button
+          type="button"
+          className="shopping-list-add-trigger__btn"
+          onClick={() => setAddItemOpen(true)}
+          disabled={addingItem || !activeListId}
         >
-          <span className="shopping-list-quick-add__icon" aria-hidden>
-            +
-          </span>
-          <input
-            type="text"
-            value={quickAdd}
-            onChange={(e) => setQuickAdd(e.target.value)}
-            placeholder="Add an item…"
-            aria-label="Add an item"
-            disabled={addingItem || !activeListId}
-          />
-        </form>
-        {suggestions.length > 0 && (
-          <div className="shopping-list-quick-add__suggestions">
-            {suggestions.map((name) => (
-              <button
-                key={name}
-                type="button"
-                className="shopping-list-quick-add__chip"
-                onClick={() => void handleQuickAdd(name)}
-                disabled={addingItem}
-              >
-                {name}
-              </button>
-            ))}
-          </div>
-        )}
+          Add item
+        </button>
+      </div>
       </div>
 
       <div className="shopping-list-content">
@@ -753,7 +924,7 @@ export function ShoppingListPage() {
         ) : activeItems.length === 0 && checkedItems.length === 0 ? (
           <div className="shopping-list-page__empty">
             <p>Your list is empty.</p>
-            <p>Add items above or pull ingredients from a recipe.</p>
+            <p>Add items with the button above or pull ingredients from a recipe.</p>
           </div>
         ) : (
           <>
@@ -763,33 +934,18 @@ export function ShoppingListPage() {
                 <section key={label} className="shopping-list-category">
                   <h2 className="shopping-list-category__label">{label}</h2>
                   <ul className="shopping-list-category__items">
-                    {(rows).map((item) => (
-                      <li key={item.id} className="shopping-list-item">
-                        <button
-                          type="button"
-                          className="shopping-list-item__check"
-                          onClick={() => void handleToggleChecked(item)}
-                          aria-label={`Mark ${item.name} as done`}
-                        />
-                        <div className="shopping-list-item__body">
-                          <div className="shopping-list-item__name">{item.name}</div>
-                          {(item.quantity || item.note) && (
-                            <div className="shopping-list-item__meta">
-                              {item.quantity && <span className="shopping-list-item__qty">{item.quantity}</span>}
-                              {item.note && <span className="shopping-list-item__note">{item.note}</span>}
-                            </div>
-                          )}
-                        </div>
-                        <span className="shopping-list-item__added-by">{item.addedByName}</span>
-                        <button
-                          type="button"
-                          className="shopping-list-item__remove"
-                          onClick={() => void handleDeleteItem(item)}
-                          aria-label={`Remove ${item.name}`}
-                        >
-                          ×
-                        </button>
-                      </li>
+                    {rows.map((item) => (
+                      <ShoppingListItemRow
+                        key={item.id}
+                        item={item}
+                        editing={editingItemId === item.id}
+                        saving={editSaving && editingItemId === item.id}
+                        onToggleChecked={() => void handleToggleChecked(item)}
+                        onDelete={() => void handleDeleteItem(item)}
+                        onStartEdit={() => setEditingItemId(item.id)}
+                        onCancelEdit={() => setEditingItemId(null)}
+                        onSaveEdit={(draft) => void handleSaveEdit(item, draft)}
+                      />
                     ))}
                   </ul>
                 </section>
@@ -818,28 +974,18 @@ export function ShoppingListPage() {
                 {checkedOpen && (
                   <ul className="shopping-list-category__items">
                     {checkedItems.map((item) => (
-                      <li key={item.id} className="shopping-list-item shopping-list-item--checked">
-                        <button
-                          type="button"
-                          className="shopping-list-item__check shopping-list-item__check--done"
-                          onClick={() => void handleToggleChecked(item)}
-                          aria-label={`Uncheck ${item.name}`}
-                        >
-                          ✓
-                        </button>
-                        <div className="shopping-list-item__body">
-                          <div className="shopping-list-item__name">{item.name}</div>
-                        </div>
-                        <span className="shopping-list-item__added-by">{item.addedByName}</span>
-                        <button
-                          type="button"
-                          className="shopping-list-item__remove"
-                          onClick={() => void handleDeleteItem(item)}
-                          aria-label={`Remove ${item.name}`}
-                        >
-                          ×
-                        </button>
-                      </li>
+                      <ShoppingListItemRow
+                        key={item.id}
+                        item={item}
+                        checked
+                        editing={editingItemId === item.id}
+                        saving={editSaving && editingItemId === item.id}
+                        onToggleChecked={() => void handleToggleChecked(item)}
+                        onDelete={() => void handleDeleteItem(item)}
+                        onStartEdit={() => setEditingItemId(item.id)}
+                        onCancelEdit={() => setEditingItemId(null)}
+                        onSaveEdit={(draft) => void handleSaveEdit(item, draft)}
+                      />
                     ))}
                   </ul>
                 )}
@@ -859,7 +1005,12 @@ export function ShoppingListPage() {
       </footer>
 
       {shareOpen && (
-        <ShareCodeModal code={shareCode} loading={shareLoading} onClose={() => setShareOpen(false)} />
+        <ShareCodeModal
+          code={shareCode}
+          shareUrl={shareUrl}
+          loading={shareLoading}
+          onClose={() => setShareOpen(false)}
+        />
       )}
       {joinOpen && (
         <JoinCodeModal
@@ -876,6 +1027,28 @@ export function ShoppingListPage() {
           loading={recipesLoading || recipeAdding}
           onClose={() => !recipeAdding && setRecipePickerOpen(false)}
           onPick={(recipe) => void handleRecipePick(recipe)}
+        />
+      )}
+      {addItemOpen && (
+        <AddItemModal
+          categoryOptions={categoryOptions}
+          saving={addingItem}
+          onClose={() => !addingItem && setAddItemOpen(false)}
+          onSubmit={(values) => void handleAddItem(values)}
+        />
+      )}
+      {dupeConfirm && (
+        <DuplicateItemsModal
+          names={dupeConfirm.names}
+          listName={activeList?.name ?? "Shopping list"}
+          missingCount={filterNonDuplicateItems(dupeConfirm.bulkItems, items).length}
+          saving={recipeAdding}
+          onCancel={() => setDupeConfirm(null)}
+          onAddMissing={() => {
+            const missing = filterNonDuplicateItems(dupeConfirm.bulkItems, items);
+            void confirmDuplicateRecipeAdd(missing);
+          }}
+          onConfirm={() => void confirmDuplicateRecipeAdd(dupeConfirm.bulkItems)}
         />
       )}
       {renameOpen && (

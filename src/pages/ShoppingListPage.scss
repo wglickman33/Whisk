@@ -1,6 +1,13 @@
 @use "../styles/tokens" as *;
 @use "../styles/interactive" as *;
 
+:global(.app-content:has(.shopping-list-page--shell)) {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
 .shopping-list-page {
   max-width: 420px;
   width: 100%;
@@ -10,8 +17,16 @@
 .shopping-list-page--shell {
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - 4rem);
-  min-height: calc(100dvh - 4rem);
+  height: 100%;
+  min-height: 0;
+}
+
+.shopping-list-top {
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--bg);
 }
 
 .shopping-list-page__title {
@@ -143,10 +158,7 @@
 .shopping-list-header {
   padding: 1.15rem 1rem 0.65rem;
   border-bottom: 1px solid var(--border);
-  position: sticky;
-  top: 0;
   background: var(--bg);
-  z-index: 10;
 }
 
 .shopping-list-header__top {
@@ -159,25 +171,14 @@
 .shopping-list-header__options-wrap {
   position: relative;
   flex-shrink: 0;
+  margin: -0.15rem -1rem 0 0;
 }
 
 .shopping-list-header__options-btn {
-  width: $touch-min;
-  height: $touch-min;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  border-radius: $radius-sm;
-  background: transparent;
-  color: var(--text-muted);
-  font-size: 1.25rem;
-  line-height: 1;
-  cursor: pointer;
-  transition: background-color $transition-base ease, color $transition-base ease;
+  @include modal-close-button;
+  color: var(--text);
 
   &:hover {
-    background: var(--surface);
     color: var(--text);
   }
 }
@@ -293,6 +294,43 @@
   align-items: center;
   gap: 0.35rem;
   margin-top: 0.55rem;
+  flex-wrap: wrap;
+}
+
+.shopping-list-header__member {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.shopping-list-header__member-remove {
+  position: absolute;
+  top: -0.35rem;
+  right: -0.35rem;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 0.65rem;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: color $transition-base ease, border-color $transition-base ease, background-color $transition-base ease;
+
+  &:hover:not(:disabled) {
+    color: var(--error);
+    border-color: var(--error);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 }
 
 .shopping-list-header__avatar {
@@ -308,6 +346,58 @@
   font-weight: 600;
   color: var(--text-muted);
   flex-shrink: 0;
+
+  &--member {
+    position: relative;
+    cursor: default;
+
+    &::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: calc(100% + 0.4rem);
+      left: 50%;
+      z-index: 30;
+      padding: 0.28rem 0.5rem;
+      border-radius: $radius-sm;
+      background: var(--text);
+      color: var(--bg);
+      font-size: 0.72rem;
+      font-weight: 500;
+      line-height: 1.2;
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateX(-50%) translateY(4px);
+      transition:
+        opacity $transition-base ease,
+        transform $transition-base ease;
+    }
+
+    &::before {
+      content: "";
+      position: absolute;
+      bottom: calc(100% + 0.15rem);
+      left: 50%;
+      z-index: 30;
+      border: 0.28rem solid transparent;
+      border-top-color: var(--text);
+      pointer-events: none;
+      opacity: 0;
+      transform: translateX(-50%);
+      transition: opacity $transition-base ease;
+    }
+
+    &:hover::after,
+    &:focus-visible::after {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    &:hover::before,
+    &:focus-visible::before {
+      opacity: 1;
+    }
+  }
 
   &--add {
     border-style: dashed;
@@ -325,73 +415,43 @@
   }
 }
 
-.shopping-list-quick-add {
+.shopping-list-add-trigger {
   padding: 0.75rem 1rem;
   border-bottom: 1px solid var(--border);
+  background: var(--bg);
 }
 
-.shopping-list-quick-add__field {
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: $radius-md;
-  padding: 0 0.85rem;
+.shopping-list-add-trigger__btn {
+  width: 100%;
   min-height: $touch-min;
-  transition: border-color $transition-base ease;
-
-  &:focus-within {
-    border-color: var(--accent);
-  }
-
-  input {
-    flex: 1;
-    background: transparent;
-    border: none;
-    outline: none;
-    color: var(--text);
-    font-size: 0.95rem;
-    font-family: inherit;
-    min-width: 0;
-
-    &::placeholder {
-      color: var(--text-muted);
-    }
-  }
-}
-
-.shopping-list-quick-add__icon {
-  color: var(--text-muted);
-  font-size: 1rem;
-  line-height: 1;
-}
-
-.shopping-list-quick-add__suggestions {
-  display: flex;
-  gap: 0.45rem;
-  margin-top: 0.5rem;
-  overflow-x: auto;
-  padding-bottom: 0.15rem;
-}
-
-.shopping-list-quick-add__chip {
-  flex-shrink: 0;
-  padding: 0.35rem 0.75rem;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  font-size: 0.82rem;
-  font-family: inherit;
-  color: var(--text-muted);
-  white-space: nowrap;
+  padding: 0.55rem 1rem;
+  border-radius: $radius-md;
+  border: 1px solid var(--accent);
+  background: var(--accent-muted);
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 600;
   cursor: pointer;
-  transition: background-color $transition-base ease, border-color $transition-base ease, color $transition-base ease;
+  transition:
+    background-color $transition-base ease,
+    border-color $transition-base ease,
+    color $transition-base ease,
+    transform $transition-base ease;
 
-  &:hover {
-    border-color: var(--accent);
-    color: var(--accent);
-    background: var(--accent-muted);
+  &:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--accent) 18%, var(--surface));
+    border-color: var(--accent-hover);
+    color: var(--accent-hover);
+  }
+
+  &:active:not(:disabled) {
+    transform: scale(0.99);
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
   }
 }
 
@@ -424,8 +484,8 @@
 .shopping-list-item {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.65rem 1rem;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem 0.35rem 0.5rem;
   min-height: $touch-min;
 }
 
@@ -435,28 +495,26 @@
   border-radius: 50%;
   border: 2px solid var(--text-muted);
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: transparent;
   padding: 0;
-  cursor: pointer;
+  pointer-events: none;
   transition: border-color $transition-base ease, background-color $transition-base ease, color $transition-base ease;
 
-  &:hover {
-    border-color: var(--accent);
-  }
-
   &--done {
-    background: var(--success, #6b9e78);
-    border-color: var(--success, #6b9e78);
-    color: var(--bg);
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
     font-size: 0.75rem;
     font-weight: 700;
     line-height: 1;
   }
 }
 
-.shopping-list-item__body {
-  flex: 1;
-  min-width: 0;
+.shopping-list-item__main:hover .shopping-list-item__check:not(.shopping-list-item__check--done) {
+  border-color: var(--accent);
 }
 
 .shopping-list-item__name {
@@ -515,7 +573,7 @@
 
   &:hover {
     color: var(--error);
-    background: var(--surface-hover);
+    background: color-mix(in srgb, var(--border) 45%, var(--surface-hover));
   }
 
   &:focus-visible {
@@ -525,7 +583,9 @@
 }
 
 .shopping-list-item--checked {
-  .shopping-list-item__name {
+  .shopping-list-item__name,
+  .shopping-list-item__qty,
+  .shopping-list-item__note {
     color: var(--text-muted);
     text-decoration: line-through;
     text-decoration-color: var(--text-muted);
@@ -584,14 +644,12 @@
 }
 
 .shopping-list-bottom-bar {
-  position: sticky;
-  bottom: 0;
+  flex-shrink: 0;
   background: var(--bg);
   border-top: 1px solid var(--border);
   padding: 0.6rem 1rem;
   display: flex;
   gap: 0.45rem;
-  margin-top: auto;
 }
 
 .shopping-list-bottom-bar__btn {
@@ -669,6 +727,13 @@
 
 .shopping-list-modal__close {
   @include modal-close-button;
+  width: 2rem;
+  height: 2rem;
+
+  span {
+    @include modal-close-icon;
+    font-size: 1.65rem;
+  }
 }
 
 .shopping-list-modal__body {
@@ -697,6 +762,42 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.shopping-list-modal__link-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.shopping-list-modal__link-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.45rem 0.65rem;
+  font: inherit;
+  font-size: 0.78rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: $radius-sm;
+  color: var(--text-muted);
+}
+
+.shopping-list-modal__search {
+  width: 100%;
+  margin-bottom: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  font: inherit;
+  font-size: 0.9rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: $radius-md;
+  color: var(--text);
+
+  &:focus {
+    border-color: var(--accent);
+    outline: none;
+  }
 }
 
 .shopping-list-modal__code {

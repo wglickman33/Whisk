@@ -24,6 +24,8 @@ import {
   IconInfo,
 } from "../ui/SidebarIcons";
 import { IconMoon, IconSun } from "../ui/AnimatedIcon";
+import { NavBadge } from "../ui/NavBadge";
+import { useShoppingActivityStore } from "../../store/shoppingActivityStore";
 import { IconHamburger } from "../ui/IconHamburger";
 
 function useWindowWidth(): number {
@@ -43,7 +45,7 @@ const mainNavItems = [
   { to: "/converter", label: "Converter", icon: IconConverter },
   { to: "/tools", label: "Tools", icon: IconTools },
   { to: "/recipes", label: "Recipes", icon: IconRecipe },
-  { to: "/shopping-list", label: "Shopping list", icon: IconShoppingList },
+  { to: "/shopping-list", label: "Shopping list", icon: IconShoppingList, showBadge: true },
   { to: "/settings", label: "Settings", icon: IconSettings },
 ];
 
@@ -61,9 +63,11 @@ export function Sidebar() {
   const toggle = useSidebarStore((s) => s.toggle);
   const { closeMobileMenu, isMobileMenuOpen } = useMenu();
   const theme = useSettingsStore((s) => s.theme);
+  const effectiveTheme = useSettingsStore((s) => s.effectiveTheme);
   const toggleTheme = useSettingsStore((s) => s.toggleTheme);
-  const { user, isSignedIn, signOut } = useAuthStore();
+  const { user, isSignedIn, isLoading, signOut } = useAuthStore();
   const openAuthModal = useAuthModalStore((s) => s.openAuthModal);
+  const shoppingUnread = useShoppingActivityStore((s) => s.unreadCount);
 
   const showExpanded = isDesktop ? expanded : true;
 
@@ -77,7 +81,8 @@ export function Sidebar() {
   const renderNavLink = (
     to: string,
     label: string,
-    Icon: React.ComponentType
+    Icon: React.ComponentType,
+    showBadge = false
   ) => (
     <NavLink
       to={to}
@@ -89,8 +94,14 @@ export function Sidebar() {
     >
       <span className="sidebar-link__icon">
         <Icon />
+        {!showExpanded && showBadge && <NavBadge count={shoppingUnread} />}
       </span>
-      {showExpanded && <span className="sidebar-link__label">{label}</span>}
+      {showExpanded && (
+        <span className="sidebar-link__label-wrap">
+          <span className="sidebar-link__label">{label}</span>
+          {showBadge && <NavBadge count={shoppingUnread} />}
+        </span>
+      )}
     </NavLink>
   );
 
@@ -133,8 +144,8 @@ export function Sidebar() {
       <div className="sidebar-nav-wrap">
         <nav className="sidebar-section" aria-label="Main">
           <ul className="sidebar-list">
-            {mainNavItems.map(({ to, label, icon: Icon }) => (
-              <li key={to}>{renderNavLink(to, label, Icon)}</li>
+            {mainNavItems.map(({ to, label, icon: Icon, showBadge }) => (
+              <li key={to}>{renderNavLink(to, label, Icon, showBadge)}</li>
             ))}
           </ul>
         </nav>
@@ -151,7 +162,7 @@ export function Sidebar() {
 
       <div className="sidebar-actions">
         <div className="sidebar-actions__grid">
-          {!isSignedIn && (
+          {!isLoading && !isSignedIn && (
             <button
               type="button"
               className="sidebar-btn sidebar-btn--primary"
@@ -182,12 +193,24 @@ export function Sidebar() {
             type="button"
             className="sidebar-btn sidebar-btn--theme"
             onClick={toggleTheme}
-            aria-label={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
-            title={theme === "light" ? "Dark mode" : "Light mode"}
+            aria-label={
+              theme === "auto"
+                ? `Theme: Auto (${effectiveTheme}). Click to switch.`
+                : effectiveTheme === "light"
+                  ? "Switch to dark mode"
+                  : "Switch to auto mode"
+            }
+            title={
+              theme === "auto"
+                ? `Auto (${effectiveTheme === "light" ? "light" : "dark"})`
+                : theme === "light"
+                  ? "Dark mode"
+                  : "Auto mode"
+            }
           >
             <span className="sidebar-btn__icon" aria-hidden>
               <AnimatePresence mode="wait">
-                {theme === "light" ? (
+                {effectiveTheme === "light" ? (
                   <IconMoon key="moon" />
                 ) : (
                   <IconSun key="sun" />
@@ -210,10 +233,12 @@ export function Sidebar() {
                   {isSignedIn ? "Welcome back," : ""}
                 </span>
                 <span className="sidebar-footer__name">
-                  {isSignedIn ? user?.name ?? user?.email ?? "User" : "Guest"}
+                  {isSignedIn
+                    ? user?.name ?? user?.email ?? (isLoading ? "Loading…" : "User")
+                    : "Guest"}
                 </span>
                 <span className="sidebar-footer__role">
-                  {!isSignedIn && "Sign in"}
+                  {!isSignedIn && !isLoading && "Sign in"}
                 </span>
               </div>
             )}

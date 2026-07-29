@@ -13,6 +13,8 @@ import {
   IconShield,
   IconInfo,
 } from "../ui/SidebarIcons";
+import { NavBadge } from "../ui/NavBadge";
+import { useShoppingActivityStore } from "../../store/shoppingActivityStore";
 import "./IconSidebar.scss";
 
 const mainNavItems = [
@@ -20,7 +22,7 @@ const mainNavItems = [
   { to: "/converter", label: "Converter", icon: IconConverter },
   { to: "/tools", label: "Tools", icon: IconTools },
   { to: "/recipes", label: "Recipes", icon: IconRecipe },
-  { to: "/shopping-list", label: "Shopping list", icon: IconShoppingList },
+  { to: "/shopping-list", label: "Shopping list", icon: IconShoppingList, showBadge: true },
   { to: "/settings", label: "Settings", icon: IconSettings },
 ];
 
@@ -33,6 +35,7 @@ const secondaryNavItems = [
 
 export function IconSidebar() {
   const { isMobileMenuOpen, toggleMobileMenu, closeMobileMenu } = useMenu();
+  const shoppingUnread = useShoppingActivityStore((s) => s.unreadCount);
 
   const handleLinkClick = () => {
     closeMobileMenu();
@@ -56,7 +59,7 @@ export function IconSidebar() {
       </button>
       <nav className="icon-sidebar__nav" aria-label="Main">
         <ul className="icon-sidebar__list">
-          {mainNavItems.map(({ to, label, icon: Icon }) => (
+          {mainNavItems.map(({ to, label, icon: Icon, showBadge }) => (
             <li key={to}>
               <NavLink
                 to={to}
@@ -69,6 +72,7 @@ export function IconSidebar() {
                 onClick={handleLinkClick}
               >
                 <Icon />
+                {showBadge && <NavBadge count={shoppingUnread} />}
               </NavLink>
             </li>
           ))}

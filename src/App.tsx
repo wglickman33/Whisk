@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { useSettingsStore } from "./store/settingsStore";
+import { initThemeSync } from "./store/settingsStore";
 import { useAuthStore } from "./store/authStore";
 import { useAuthModalStore } from "./store/authModalStore";
 import { Layout } from "./components/layout/Layout";
@@ -68,14 +68,7 @@ function PasswordResetFromUrl() {
 }
 
 function ThemeInit() {
-  const theme = useSettingsStore((s) => s.theme);
-  useEffect(() => {
-    if (theme === "dark") {
-      document.documentElement.setAttribute("data-theme", "dark");
-    } else {
-      document.documentElement.removeAttribute("data-theme");
-    }
-  }, [theme]);
+  useEffect(() => initThemeSync(), []);
   return null;
 }
 

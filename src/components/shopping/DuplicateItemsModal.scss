@@ -1,0 +1,117 @@
+@use "../../styles/tokens" as *;
+
+.duplicate-items-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgb(0 0 0 / 45%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.duplicate-items-modal {
+  width: min(100%, 24rem);
+  padding: 1.25rem;
+  border-radius: $radius-lg;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  box-shadow: 0 16px 40px rgb(0 0 0 / 18%);
+
+  h2 {
+    margin: 0 0 0.5rem;
+    font-size: 1.05rem;
+    color: var(--text);
+  }
+
+  p {
+    margin: 0 0 0.75rem;
+    color: var(--text-muted);
+    line-height: 1.45;
+  }
+}
+
+.duplicate-items-modal__hint {
+  font-size: 0.9rem;
+}
+
+.duplicate-items-modal__names {
+  margin: 0 0 1rem;
+  padding-left: 1.1rem;
+  color: var(--text);
+
+  li {
+    margin-bottom: 0.2rem;
+  }
+}
+
+.duplicate-items-modal__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+
+  button {
+    min-height: 2.25rem;
+    padding: 0.45rem 0.85rem;
+    border-radius: $radius-md;
+    font: inherit;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-muted);
+    transition:
+      background-color $transition-base ease,
+      border-color $transition-base ease,
+      color $transition-base ease,
+      transform $transition-base ease,
+      box-shadow $transition-base ease;
+
+    &:hover:not(:disabled) {
+      background: var(--surface-hover);
+      border-color: var(--border-hover);
+      color: var(--text);
+    }
+
+    &:active:not(:disabled) {
+      transform: scale(0.98);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+}
+
+.duplicate-items-modal__missing {
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
+  background: var(--accent-muted) !important;
+
+  &:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--accent) 18%, var(--surface)) !important;
+    border-color: var(--accent-hover) !important;
+    color: var(--accent-hover) !important;
+  }
+}
+
+.duplicate-items-modal__confirm {
+  border-color: var(--accent) !important;
+  background: var(--accent) !important;
+  color: #fff !important;
+
+  &:hover:not(:disabled) {
+    background: var(--accent-hover) !important;
+    border-color: var(--accent-hover) !important;
+    color: #fff !important;
+  }
+}

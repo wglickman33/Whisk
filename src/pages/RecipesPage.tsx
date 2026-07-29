@@ -12,18 +12,25 @@ import {
   type Tag,
   type ShoppingList,
   type ShoppingListItemInput,
+  type ShoppingListItem,
 } from "../api/client";
 import { toastSuccess, toastError } from "../store/toastStore";
 import { filterRecipes } from "../utils/filterRecipes";
 import { scaledIngredientToListItem } from "../utils/shoppingListUtils";
-import { bulkAddToList, prepareAddToShoppingList } from "../utils/shoppingListActions";
+import { bulkAddToList, resolveAddTarget } from "../utils/shoppingListActions";
+import { SHOPPING_LIST_PATH } from "../utils/shoppingListShare";
+import { importRecipeFromFile } from "../utils/recipeTransfer";
+import { findDuplicateItemNames, filterNonDuplicateItems } from "../utils/shoppingListDedupe";
+import { DuplicateItemsModal } from "../components/shopping/DuplicateItemsModal";
 import { ListPickerModal } from "../components/shopping/ListPickerModal";
+import { RecipeExportMenu } from "../components/recipes/RecipeExportMenu";
 import { IconRecipe } from "../components/ui/SidebarIcons";
 import { RecipeView } from "../components/recipes/RecipeView";
 import "./RecipesPage.scss";
 
 export function RecipesPage() {
   const isSignedIn = useAuthStore((s) => s.isSignedIn);
+  const isLoading = useAuthStore((s) => s.isLoading);
   const openAuthModal = useAuthModalStore((s) => s.openAuthModal);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [folders, setFolders] = useState<FolderSummary[]>([]);
@@ -33,6 +40,8 @@ export function RecipesPage() {
   const [folderFilter, setFolderFilter] = useState<string>("");
   const [importUrl, setImportUrl] = useState("");
   const [importing, setImporting] = useState(false);
+  const [importingFile, setImportingFile] = useState(false);
+  const importFileRef = useRef<HTMLInputElement>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewingId, setViewingId] = useState<string | null>(null);
@@ -44,6 +53,14 @@ export function RecipesPage() {
   const [listPickerLists, setListPickerLists] = useState<ShoppingList[]>([]);
   const [listPickerItems, setListPickerItems] = useState<ShoppingListItemInput[]>([]);
   const [listPickerSaving, setListPickerSaving] = useState(false);
+  const [dupeConfirm, setDupeConfirm] = useState<{
+    names: string[];
+    items: ShoppingListItemInput[];
+    existing: ShoppingListItem[];
+    listId: string;
+    listName: string;
+  } | null>(null);
+  const [dupeSaving, setDupeSaving] = useState(false);
 
   const fetchRecipes = useCallback(async () => {
     if (!isSignedIn) return;
@@ -73,21 +90,56 @@ export function RecipesPage() {
     [recipes, search, folderFilter]
   );
 
-  const addIngredientsToShoppingList = useCallback(async (items: ShoppingListItemInput[]) => {
-    try {
-      const result = await prepareAddToShoppingList(items);
-      if (result.status === "empty") return;
-      if (result.status === "added") {
-        toastSuccess(`Added to "${result.listName}".`);
-        return;
+  const finishAddToList = useCallback(
+    async (listId: string, listName: string, items: ShoppingListItemInput[]) => {
+      await bulkAddToList(listId, items);
+      toastSuccess(`Added to "${listName}".`, {
+        actionLabel: "View list",
+        actionHref: SHOPPING_LIST_PATH,
+      });
+    },
+    []
+  );
+
+  const tryAddItemsToShoppingList = useCallback(
+    async (items: ShoppingListItemInput[]) => {
+      try {
+        const target = await resolveAddTarget(items);
+        if (target.status === "empty") return;
+        if (target.status === "pick") {
+          setListPickerLists(target.lists);
+          setListPickerItems(target.items);
+          setListPickerOpen(true);
+          return;
+        }
+
+        const { items: existing } = await shoppingListsApi.getItems(target.listId);
+        const dupes = findDuplicateItemNames(items, existing);
+        if (dupes.length > 0) {
+          setDupeConfirm({
+            names: dupes,
+            items,
+            existing,
+            listId: target.listId,
+            listName: target.listName,
+          });
+          return;
+        }
+
+        await finishAddToList(target.listId, target.listName, items);
+      } catch (err) {
+        toastError(err instanceof Error ? err.message : "Failed to add to shopping list.");
       }
-      setListPickerLists(result.lists);
-      setListPickerItems(result.items);
-      setListPickerOpen(true);
-    } catch (err) {
-      toastError(err instanceof Error ? err.message : "Failed to add to shopping list.");
-    }
-  }, []);
+    },
+    [finishAddToList]
+  );
+
+  const addIngredientsToShoppingList = useCallback(
+    async (items: ShoppingListItemInput[]) => {
+      await tryAddItemsToShoppingList(items);
+    },
+    [tryAddItemsToShoppingList]
+  );
 
   const handleImport = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,6 +155,27 @@ export function RecipesPage() {
       toastError(err instanceof Error ? err.message : "Import failed.");
     } finally {
       setImporting(false);
+    }
+  };
+
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setImportingFile(true);
+    try {
+      const recipe = await importRecipeFromFile(file);
+      setRecipes((prev) => [recipe, ...prev]);
+      setAllTags((prev) => {
+        const merged = new Map(prev.map((tag) => [tag.id, tag]));
+        for (const { tag } of recipe.tags ?? []) merged.set(tag.id, tag);
+        return [...merged.values()].sort((a, b) => a.label.localeCompare(b.label));
+      });
+      toastSuccess(`Imported "${recipe.title}".`);
+    } catch (err) {
+      toastError(err instanceof Error ? err.message : "Failed to import recipe file.");
+    } finally {
+      setImportingFile(false);
     }
   };
 
@@ -135,7 +208,7 @@ export function RecipesPage() {
     setFolderName("");
   };
 
-  if (!isSignedIn) {
+  if (!isLoading && !isSignedIn) {
     return (
       <div className="recipes-page">
         <h1 className="recipes-page__title">Recipes</h1>
@@ -200,18 +273,38 @@ export function RecipesPage() {
         </button>
       </div>
 
-      <form className="recipes-page__import" onSubmit={handleImport}>
-        <input
-          type="url"
-          placeholder="Paste recipe URL to import…"
-          value={importUrl}
-          onChange={(e) => setImportUrl(e.target.value)}
-          aria-label="Recipe URL"
-        />
-        <button type="submit" disabled={importing || !importUrl.trim()}>
-          {importing ? "Importing…" : "Import"}
-        </button>
-      </form>
+      <div className="recipes-page__import-row">
+        <form className="recipes-page__import" onSubmit={handleImport}>
+          <input
+            type="url"
+            placeholder="Paste recipe URL to import…"
+            value={importUrl}
+            onChange={(e) => setImportUrl(e.target.value)}
+            aria-label="Recipe URL"
+          />
+          <button type="submit" disabled={importing || !importUrl.trim()}>
+            {importing ? "Importing…" : "Import URL"}
+          </button>
+        </form>
+        <div className="recipes-page__import-file">
+          <input
+            ref={importFileRef}
+            type="file"
+            accept=".json,.whisk.json,application/json"
+            className="recipes-page__import-file-input"
+            onChange={(e) => void handleImportFile(e)}
+            aria-label="Import Whisk recipe file"
+          />
+          <button
+            type="button"
+            className="recipes-page__import-file-btn"
+            onClick={() => importFileRef.current?.click()}
+            disabled={importingFile}
+          >
+            {importingFile ? "Importing…" : "Import file"}
+          </button>
+        </div>
+      </div>
 
       <div className="recipes-page__body">
         {loading && <p className="recipes-page__loading">Loading recipes…</p>}
@@ -219,7 +312,7 @@ export function RecipesPage() {
         {!loading && visibleRecipes.length === 0 && !formOpen && (
           <p className="recipes-page__empty">
             {recipes.length === 0
-              ? 'No recipes yet. Click "New Recipe" or import from a URL.'
+              ? 'No recipes yet. Click "New Recipe", import from a URL, or import a Whisk file.'
               : "No recipes match your search."}
           </p>
         )}
@@ -260,6 +353,7 @@ export function RecipesPage() {
                   <button type="button" className="recipes-page__card-btn recipes-page__card-btn--view" onClick={() => setViewingId(r.id)}>
                     View
                   </button>
+                  <RecipeExportMenu recipe={r} variant="card" dropdownAlign="left" />
                   <button
                     type="button"
                     className="recipes-page__card-btn"
@@ -321,7 +415,9 @@ export function RecipesPage() {
             }}
             onAddAllToList={(currentServings) => {
               const scale = recipe.servings > 0 ? currentServings / recipe.servings : 1;
-              const items = recipe.ingredients.map((ing) =>
+              const items = recipe.ingredients
+                .filter((ing) => !ing.isOptional)
+                .map((ing) =>
                 scaledIngredientToListItem({
                   name: ing.name,
                   quantity: ing.quantity * scale,
@@ -360,30 +456,78 @@ export function RecipesPage() {
           onClose={() => setListPickerOpen(false)}
           onSelect={(listId) => {
             setListPickerSaving(true);
-            void bulkAddToList(listId, listPickerItems)
-              .then(() => {
+            void (async () => {
+              try {
                 const chosen = listPickerLists.find((l) => l.id === listId);
-                toastSuccess(`Added to "${chosen?.name ?? "list"}".`);
+                if (!chosen) return;
+                const { items: existing } = await shoppingListsApi.getItems(listId);
+                const dupes = findDuplicateItemNames(listPickerItems, existing);
+                if (dupes.length > 0) {
+                  setListPickerOpen(false);
+                  setDupeConfirm({
+                    names: dupes,
+                    items: listPickerItems,
+                    existing,
+                    listId,
+                    listName: chosen.name,
+                  });
+                  return;
+                }
+                await finishAddToList(listId, chosen.name, listPickerItems);
                 setListPickerOpen(false);
-              })
-              .catch((err) => {
+              } catch (err) {
                 toastError(err instanceof Error ? err.message : "Failed to add items.");
-              })
-              .finally(() => setListPickerSaving(false));
+              } finally {
+                setListPickerSaving(false);
+              }
+            })();
           }}
           onCreate={() => {
             setListPickerSaving(true);
-            void shoppingListsApi
-              .create("Shopping list")
-              .then(({ list }) => bulkAddToList(list.id, listPickerItems).then(() => list))
-              .then((list) => {
-                toastSuccess(`Added to "${list.name}".`);
+            void (async () => {
+              try {
+                const { list } = await shoppingListsApi.create("Shopping list");
+                await finishAddToList(list.id, list.name, listPickerItems);
                 setListPickerOpen(false);
-              })
+              } catch (err) {
+                toastError(err instanceof Error ? err.message : "Failed to add items.");
+              } finally {
+                setListPickerSaving(false);
+              }
+            })();
+          }}
+        />
+      )}
+
+      {dupeConfirm && (
+        <DuplicateItemsModal
+          names={dupeConfirm.names}
+          listName={dupeConfirm.listName}
+          missingCount={filterNonDuplicateItems(dupeConfirm.items, dupeConfirm.existing).length}
+          saving={dupeSaving}
+          onCancel={() => setDupeConfirm(null)}
+          onAddMissing={() => {
+            const missing = filterNonDuplicateItems(dupeConfirm.items, dupeConfirm.existing);
+            if (missing.length === 0) {
+              setDupeConfirm(null);
+              return;
+            }
+            setDupeSaving(true);
+            void finishAddToList(dupeConfirm.listId, dupeConfirm.listName, missing)
+              .then(() => setDupeConfirm(null))
               .catch((err) => {
                 toastError(err instanceof Error ? err.message : "Failed to add items.");
               })
-              .finally(() => setListPickerSaving(false));
+              .finally(() => setDupeSaving(false));
+          }}
+          onConfirm={() => {
+            setDupeSaving(true);
+            void finishAddToList(dupeConfirm.listId, dupeConfirm.listName, dupeConfirm.items)
+              .then(() => setDupeConfirm(null))
+              .catch((err) => {
+                toastError(err instanceof Error ? err.message : "Failed to add items.");
+              })
+              .finally(() => setDupeSaving(false));
           }}
         />
       )}

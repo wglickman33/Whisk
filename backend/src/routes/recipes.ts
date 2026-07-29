@@ -194,9 +194,13 @@ router.post("/", async (req: AuthRequest, res) => {
         steps: Array.isArray(steps)
           ? {
               create: steps.map(
-                (step: { instruction: string; timerMinutes?: number }, i: number) => ({
+                (
+                  step: { instruction: string; timerMinutes?: number; imageUrl?: string | null },
+                  i: number
+                ) => ({
                   instruction: sanitizeString(step.instruction, LIMITS.instructionMax) ?? "",
                   timerMinutes: step.timerMinutes != null ? Number(step.timerMinutes) : null,
+                  imageUrl: sanitizeString(step.imageUrl, LIMITS.sourceUrlMax),
                   order: i,
                 })
               ),
@@ -303,9 +307,13 @@ router.put("/:id", async (req: AuthRequest, res) => {
         ...(Array.isArray(steps) && {
           steps: {
             create: steps.map(
-              (step: { instruction: string; timerMinutes?: number }, i: number) => ({
+              (
+                step: { instruction: string; timerMinutes?: number; imageUrl?: string | null },
+                i: number
+              ) => ({
                 instruction: sanitizeString(step.instruction, LIMITS.instructionMax) ?? "",
                 timerMinutes: step.timerMinutes != null ? Number(step.timerMinutes) : null,
+                imageUrl: sanitizeString(step.imageUrl, LIMITS.sourceUrlMax),
                 order: i,
               })
             ),

@@ -18,9 +18,12 @@ export const TOOL_CAPABILITIES = [
 ] as const;
 
 export const APP_CAPABILITIES = [
-  "Unit converter",
-  "Recipes & scaling",
-  "Shopping list",
+  "Unit converter (volume, weight, length, area, time, and more)",
+  "Recipes with folders, tags, scaling, and URL import",
+  "Recipe export: Whisk JSON, PDF, and plain text",
+  "Shared shopping lists with share codes and live updates",
+  "Shopping list categories and recipe ingredient import",
+  "Settings: light, dark, or auto theme; synced preferences",
 ] as const;
 
 export const UNSUPPORTED_ITEMS = [

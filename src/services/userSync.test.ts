@@ -32,7 +32,7 @@ describe("legacyItemToInput", () => {
       name: "Eggs",
       quantity: "6",
       note: null,
-      category: null,
+      category: "Dairy & Eggs",
     });
   });
 });

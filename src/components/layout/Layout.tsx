@@ -6,6 +6,7 @@ import { IconSidebar } from "./IconSidebar";
 import { MobileHeader } from "./MobileHeader";
 import { AuthModal } from "../auth/AuthModal";
 import { NotificationToastContainer } from "../ui/NotificationToast";
+import { useShoppingListStream } from "../../hooks/useShoppingListStream";
 import { MenuProvider, useMenu } from "../../context/MenuContext";
 import { useSidebarStore } from "../../store/sidebarStore";
 import { BP_DESKTOP, BP_TABLET } from "../../constants/breakpoints";
@@ -27,6 +28,7 @@ function LayoutInner() {
   const width = useWindowWidth();
   const { isMobileMenuOpen, closeMobileMenu } = useMenu();
   const expanded = useSidebarStore((s) => s.expanded);
+  useShoppingListStream();
 
   const isDesktop = width > BP_DESKTOP;
   const isTablet = width > BP_TABLET && width <= BP_DESKTOP;

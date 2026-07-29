@@ -799,14 +799,27 @@
   padding: 0.75rem 1.25rem;
   border-top: 1px solid var(--border);
   flex-shrink: 0;
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
 
   @media (max-width: 480px) {
     padding: 0.75rem 1rem;
+    flex-direction: column;
   }
 }
 
-.recipe-view__edit {
+.recipe-view__footer .recipe-export-menu {
+  flex: 1;
+}
+
+.recipe-view__footer .recipe-export-menu__trigger {
   width: 100%;
+  min-height: $touch-pref;
+}
+
+.recipe-view__edit {
+  flex: 1;
   padding: 0.6rem 1rem;
   min-height: $touch-pref;
   display: inline-flex;

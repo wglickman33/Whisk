@@ -4,6 +4,7 @@ import { substitutesApi } from "../../api/client";
 import { formatQuantity } from "../../utils/formatQuantity";
 import { resolveSubstitutes } from "../../utils/resolveSubstitutes";
 import { useWakeLock } from "../../hooks/useWakeLock";
+import { RecipeExportMenu } from "./RecipeExportMenu";
 import "./RecipeView.scss";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -294,7 +295,7 @@ export function RecipeView({
 
   const handleAddSelectedToList = () => {
     const items = scaledIngredients
-      .filter((ing) => selectedIngIds.has(ing.id))
+      .filter((ing) => selectedIngIds.has(ing.id) && !ing.isOptional)
       .map((ing) => ({
         name: ing.name,
         quantity: ing.quantity,
@@ -682,6 +683,7 @@ export function RecipeView({
         </div>
 
         <footer className="recipe-view__footer">
+          <RecipeExportMenu recipe={recipe} />
           <button type="button" className="recipe-view__edit" onClick={handleEdit}>
             Edit recipe
           </button>

@@ -6,6 +6,8 @@ export interface ToastItem {
   id: string;
   type: ToastType;
   message: string;
+  actionLabel?: string;
+  actionHref?: string;
 }
 
 function makeId(): string {
@@ -14,23 +16,37 @@ function makeId(): string {
 
 interface ToastState {
   items: ToastItem[];
-  add: (type: ToastType, message: string) => string;
+  add: (type: ToastType, message: string, options?: { actionLabel?: string; actionHref?: string }) => string;
   remove: (id: string) => void;
 }
 
 export const useToastStore = create<ToastState>()((set) => ({
   items: [],
-  add: (type, message) => {
+  add: (type, message, options) => {
     const id = makeId();
-    set((s) => ({ items: [...s.items, { id, type, message }] }));
+    set((s) => ({
+      items: [
+        ...s.items,
+        {
+          id,
+          type,
+          message,
+          actionLabel: options?.actionLabel,
+          actionHref: options?.actionHref,
+        },
+      ],
+    }));
     return id;
   },
   remove: (id) => set((s) => ({ items: s.items.filter((t) => t.id !== id) })),
 }));
 
 /** Show a success toast. */
-export function toastSuccess(message: string): string {
-  return useToastStore.getState().add("success", message);
+export function toastSuccess(
+  message: string,
+  options?: { actionLabel?: string; actionHref?: string }
+): string {
+  return useToastStore.getState().add("success", message, options);
 }
 
 /** Show an error toast. */
