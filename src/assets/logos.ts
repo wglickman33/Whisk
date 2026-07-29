@@ -1,6 +1,6 @@
-import whiskLogoWhiteImg from "./whiskLogoWhite.png";
-import whiskLogoCharcoalImg from "./whiskLogoCharcoal.png";
-import whiskLogoAmberImg from "./whiskLogoAmber.png";
+import whiskLogoWhiteImg from "./whiskLogoWhite.svg";
+import whiskLogoCharcoalImg from "./whiskLogoCharcoal.svg";
+import whiskLogoAmberImg from "./whiskLogoAmber.svg";
 
 export const whiskLogoWhite = whiskLogoWhiteImg;
 export const whiskLogoCharcoal = whiskLogoCharcoalImg;

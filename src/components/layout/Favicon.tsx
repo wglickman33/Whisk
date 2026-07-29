@@ -7,7 +7,7 @@ export function Favicon() {
     if (!link) {
       link = document.createElement("link");
       link.rel = "icon";
-      link.type = "image/png";
+      link.type = "image/svg+xml";
       document.head.appendChild(link);
     }
     link.href = whiskLogoAmber;

@@ -24,9 +24,9 @@ export default defineConfig({
         display: "standalone",
         icons: [
           {
-            src: "/assets/whiskLogoAmber.png",
-            sizes: "192x192",
-            type: "image/png",
+            src: "/assets/whiskLogoAmber.svg",
+            sizes: "any",
+            type: "image/svg+xml",
             purpose: "any maskable",
           },
         ],
