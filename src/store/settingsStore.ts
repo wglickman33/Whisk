@@ -83,14 +83,20 @@ function schedulePrefsSave(get: () => SettingsState): void {
 }
 
 export function waitForSettingsHydration(): Promise<void> {
-  if (useSettingsStore.persist.hasHydrated()) {
-    return Promise.resolve();
-  }
   return new Promise((resolve) => {
+    if (useSettingsStore.persist.hasHydrated()) {
+      resolve();
+      return;
+    }
     const unsub = useSettingsStore.persist.onFinishHydration(() => {
       unsub();
       resolve();
     });
+    // Hydration may finish between the check above and the listener attach.
+    if (useSettingsStore.persist.hasHydrated()) {
+      unsub();
+      resolve();
+    }
   });
 }
 

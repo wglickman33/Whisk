@@ -52,10 +52,14 @@ function getInitialAuthState(): Pick<AuthState, "user" | "isSignedIn" | "isLoadi
   };
 }
 
-async function afterAuth(user: AuthUser, token: string): Promise<void> {
+function establishSession(user: AuthUser, token: string): void {
   localStorage.setItem(TOKEN_KEY, token);
   cacheUser(user);
-  await syncUserDataFromServer().catch(() => {
+}
+
+/** Prefs / shopping sync — never block sign-in UI. */
+function syncAfterAuth(): void {
+  void syncUserDataFromServer().catch(() => {
     /* offline — local data still usable; sync flags stay off until next successful sync */
   });
 }
@@ -64,7 +68,7 @@ interface AuthState {
   user: AuthUser | null;
   isSignedIn: boolean;
   isLoading: boolean;
-  signIn: (user: AuthUser, token: string) => Promise<void>;
+  signIn: (user: AuthUser, token: string) => void;
   signOut: () => void;
   setUser: (user: AuthUser | null) => void;
   restoreSession: () => Promise<void>;
@@ -73,9 +77,10 @@ interface AuthState {
 export const useAuthStore = create<AuthState>((set) => ({
   ...getInitialAuthState(),
 
-  signIn: async (user, token) => {
-    await afterAuth(user, token);
+  signIn: (user, token) => {
+    establishSession(user, token);
     set({ user, isSignedIn: true, isLoading: false });
+    syncAfterAuth();
   },
 
   signOut: () => {
@@ -111,8 +116,9 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       try {
         const user = await authApi.me();
-        await afterAuth(user, token);
+        establishSession(user, token);
         set({ user, isSignedIn: true, isLoading: false });
+        syncAfterAuth();
       } catch {
         localStorage.removeItem(TOKEN_KEY);
         clearCachedUser();

@@ -1,11 +1,9 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useAuthStore } from "../../store/authStore";
 import { useAuthModalStore } from "../../store/authModalStore";
 import { toastSuccess, toastError } from "../../store/toastStore";
-import { authApi } from "../../api/client";
+import { authApi, type AuthUser } from "../../api/client";
 import "./AuthModal.scss";
-
-const SUCCESS_AUTO_CLOSE_MS = 1400;
 
 export function AuthModal() {
   const { open, mode, resetEmail, resetToken, closeAuthModal, openAuthModal } = useAuthModalStore();
@@ -15,7 +13,6 @@ export function AuthModal() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
-  const successCloseRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (mode === "reset" && resetEmail) setEmail(resetEmail);
@@ -26,6 +23,13 @@ export function AuthModal() {
     setPassword("");
     setConfirmPassword("");
     setName("");
+  };
+
+  const finishAuth = (user: AuthUser, token: string, message: string) => {
+    signIn(user, token);
+    toastSuccess(message);
+    closeAuthModal();
+    resetForm();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -53,19 +57,11 @@ export function AuthModal() {
 
       if (mode === "register") {
         const { user, token } = await authApi.register(email, password, name || undefined);
-        await signIn(user, token);
-        toastSuccess("Account created. Signing you in…");
+        finishAuth(user, token, "Account created.");
       } else {
         const { user, token } = await authApi.login(email, password);
-        await signIn(user, token);
-        toastSuccess("Signed in successfully.");
+        finishAuth(user, token, "Signed in.");
       }
-
-      if (successCloseRef.current) clearTimeout(successCloseRef.current);
-      successCloseRef.current = setTimeout(() => {
-        closeAuthModal();
-        resetForm();
-      }, SUCCESS_AUTO_CLOSE_MS);
     } catch (err) {
       toastError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
