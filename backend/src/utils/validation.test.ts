@@ -118,4 +118,20 @@ describe("validatePreferences", () => {
   it("rejects invalid unit category", () => {
     expect(validatePreferences({ defaultUnitCategory: "invalid" })).toMatch(/category/i);
   });
+
+  it("accepts dietary preferences object", () => {
+    expect(
+      validatePreferences({
+        dietaryPreferences: { dairyFree: true, vegan: false },
+      })
+    ).toBeNull();
+  });
+
+  it("rejects non-boolean dietary preference flags", () => {
+    expect(
+      validatePreferences({
+        dietaryPreferences: { dairyFree: "yes" },
+      })
+    ).toMatch(/dairyFree/i);
+  });
 });

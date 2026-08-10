@@ -4,6 +4,9 @@ import { substitutesApi } from "../../api/client";
 import { formatQuantity } from "../../utils/formatQuantity";
 import { resolveSubstitutes } from "../../utils/resolveSubstitutes";
 import { useWakeLock } from "../../hooks/useWakeLock";
+import { useSettingsStore } from "../../store/settingsStore";
+import { hasActiveDietaryPreferences } from "../../utils/dietaryPreferences";
+import { DIETARY_FILTER_DISCLAIMER, type SubstituteOption } from "../../types/dietary";
 import { RecipeExportMenu } from "./RecipeExportMenu";
 import "./RecipeView.scss";
 
@@ -161,9 +164,10 @@ export interface RecipeViewProps {
 type RecipeWithOptionalImage = Recipe & { imageUrl?: string | null };
 
 type SubstituteCacheEntry = {
-  substitutes: string[];
+  substitutes: SubstituteOption[];
   index: number;
   noSubstitute: boolean;
+  preferencesRelaxed: boolean;
 };
 
 export function RecipeView({
@@ -175,6 +179,8 @@ export function RecipeView({
 }: RecipeViewProps) {
   const r = recipe as RecipeWithOptionalImage;
   const wakeLock = useWakeLock();
+  const dietaryPreferences = useSettingsStore((s) => s.dietaryPreferences);
+  const prefsActive = hasActiveDietaryPreferences(dietaryPreferences);
   const [servings, setServings] = useState(recipe.servings);
   const [selectedIngIds, setSelectedIngIds] = useState<Set<string>>(new Set());
   const [completedStepIds, setCompletedStepIds] = useState<Set<string>>(new Set());
@@ -184,6 +190,9 @@ export function RecipeView({
   const subCacheRef = useRef(subCache);
   subCacheRef.current = subCache;
   const subFetchInFlightRef = useRef<Map<string, Promise<void>>>(new Map());
+  /** Bumped when dietary prefs change so in-flight fetches can't write stale cache. */
+  const dietaryEpochRef = useRef(0);
+  const dietaryKey = JSON.stringify(dietaryPreferences);
 
   const loadSubstitutes = useCallback(async (ingKey: string, ingName: string) => {
     if (subCacheRef.current.has(ingKey)) return;
@@ -191,30 +200,59 @@ export function RecipeView({
     const inflight = subFetchInFlightRef.current.get(ingKey);
     if (inflight) return inflight;
 
-    const run = (async () => {
+    const epochAtStart = dietaryEpochRef.current;
+    let run!: Promise<void>;
+    run = (async () => {
       setSubLoading((prev) => new Set(prev).add(ingKey));
       try {
-        const result = await resolveSubstitutes(ingName, substitutesApi.get);
+        const prefs = useSettingsStore.getState().dietaryPreferences;
+        const result = await resolveSubstitutes(
+          ingName,
+          (name, dietary) => substitutesApi.get(name, dietary),
+          undefined,
+          prefs
+        );
+        if (dietaryEpochRef.current !== epochAtStart) return;
         setSubCache((prev) =>
           new Map(prev).set(ingKey, {
             substitutes: result.substitutes,
             index: 0,
             noSubstitute: result.noSubstitute,
+            preferencesRelaxed: result.preferencesRelaxed,
           })
         );
       } finally {
-        setSubLoading((prev) => {
-          const next = new Set(prev);
-          next.delete(ingKey);
-          return next;
-        });
-        subFetchInFlightRef.current.delete(ingKey);
+        // Always drop our own in-flight entry; never clear a newer request's promise.
+        if (subFetchInFlightRef.current.get(ingKey) === run) {
+          subFetchInFlightRef.current.delete(ingKey);
+        }
+        if (dietaryEpochRef.current === epochAtStart) {
+          setSubLoading((prev) => {
+            const next = new Set(prev);
+            next.delete(ingKey);
+            return next;
+          });
+        }
       }
     })();
 
     subFetchInFlightRef.current.set(ingKey, run);
     return run;
   }, []);
+
+  // Clear + refetch open panels when dietary prefs change.
+  useEffect(() => {
+    dietaryEpochRef.current += 1;
+    subCacheRef.current = new Map();
+    setSubCache(new Map());
+    subFetchInFlightRef.current.clear();
+    setSubLoading(new Set());
+    for (const ingKey of subPanelOpen) {
+      const ing = recipe.ingredients.find((i, idx) => (i.id ?? String(idx)) === ingKey);
+      if (ing) void loadSubstitutes(ingKey, ing.name);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dietaryKey]);
 
   const toggleSubPanel = useCallback(
     (ingKey: string, ingName: string) => {
@@ -575,14 +613,29 @@ export function RecipeView({
                       )}
                       {!subIsLoading && subEntry && !subEntry.noSubstitute && (
                         <>
+                          {prefsActive && !subEntry.preferencesRelaxed && (
+                            <p className="recipe-view__sub-text recipe-view__sub-text--muted">
+                              Matched to your dietary preferences.
+                            </p>
+                          )}
+                          {subEntry.preferencesRelaxed && (
+                            <p className="recipe-view__sub-text recipe-view__sub-text--muted">
+                              None matched your dietary preferences — showing all options.
+                            </p>
+                          )}
                           {subEntry.substitutes.length > 1 && (
                             <p className="recipe-view__sub-count" aria-live="polite">
                               {subEntry.index + 1} of {subEntry.substitutes.length}
                             </p>
                           )}
                           <p className="recipe-view__sub-text">
-                            {subEntry.substitutes[subEntry.index]}
+                            {subEntry.substitutes[subEntry.index]?.text}
                           </p>
+                          {subEntry.substitutes[subEntry.index]?.sourcingNote && (
+                            <p className="recipe-view__sub-sourcing">
+                              {subEntry.substitutes[subEntry.index].sourcingNote}
+                            </p>
+                          )}
                           {subEntry.substitutes.length > 1 && (
                             <button
                               type="button"
@@ -591,6 +644,9 @@ export function RecipeView({
                             >
                               Try another
                             </button>
+                          )}
+                          {prefsActive && (
+                            <p className="recipe-view__sub-disclaimer">{DIETARY_FILTER_DISCLAIMER}</p>
                           )}
                         </>
                       )}

@@ -6,6 +6,7 @@ import {
   useSettingsStore,
   waitForSettingsHydration,
 } from "../store/settingsStore";
+import { parseDietaryPreferences } from "../utils/dietaryPreferences";
 import { scaledIngredientToListItem } from "../utils/shoppingListUtils";
 
 const LEGACY_STORAGE_KEY = "recipe-app-shopping-list";
@@ -51,23 +52,34 @@ async function syncPreferencesFromServer(): Promise<void> {
   const settings = useSettingsStore.getState();
   const localTheme = settings.theme;
   const localCategory = settings.defaultUnitCategory;
+  const localDietary = settings.dietaryPreferences;
   const serverTheme = parseTheme(prefs.theme);
   const serverCategory = parseUnitCategory(prefs.defaultUnitCategory);
+  const serverDietary = parseDietaryPreferences(prefs.dietaryPreferences);
 
-  const differs = localTheme !== serverTheme || localCategory !== serverCategory;
+  const dietaryDiffers =
+    localDietary.dairyFree !== serverDietary.dairyFree ||
+    localDietary.glutenFree !== serverDietary.glutenFree ||
+    localDietary.nutFree !== serverDietary.nutFree ||
+    localDietary.soyFree !== serverDietary.soyFree ||
+    localDietary.vegetarian !== serverDietary.vegetarian ||
+    localDietary.vegan !== serverDietary.vegan;
+
+  const differs =
+    localTheme !== serverTheme || localCategory !== serverCategory || dietaryDiffers;
 
   if (differs && hasPersistedSettings()) {
     try {
       await settings.savePreferences();
       return;
     } catch {
-      settings.applyFromServer(prefs.theme, prefs.defaultUnitCategory);
+      settings.applyFromServer(prefs.theme, prefs.defaultUnitCategory, prefs.dietaryPreferences);
       settings.markSynced();
       return;
     }
   }
 
-  settings.applyFromServer(prefs.theme, prefs.defaultUnitCategory);
+  settings.applyFromServer(prefs.theme, prefs.defaultUnitCategory, prefs.dietaryPreferences);
   settings.markSynced();
 }
 

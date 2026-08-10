@@ -55,6 +55,26 @@ describe("GET /api/ingredients/substitutes", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.substitutes).toEqual(["olive oil", "margarine"]);
-    expect(fetchSpoonacularSubstitutes).toHaveBeenCalledWith("butter", { apiKey: "test-key" });
+    expect(fetchSpoonacularSubstitutes).toHaveBeenCalledWith("butter", {
+      apiKey: "test-key",
+      intolerances: "",
+      diet: "",
+    });
+  });
+
+  it("forwards dietary preference query flags to Spoonacular params", async () => {
+    process.env.SPOONACULAR_API_KEY = "test-key";
+    fetchSpoonacularSubstitutes.mockResolvedValue([]);
+
+    const res = await request(app)
+      .get("/api/ingredients/substitutes?name=butter&dairyFree=1&vegan=1&nutFree=1")
+      .set(authHeader());
+
+    expect(res.status).toBe(200);
+    expect(fetchSpoonacularSubstitutes).toHaveBeenCalledWith("butter", {
+      apiKey: "test-key",
+      intolerances: "dairy,peanut,tree nut",
+      diet: "vegan",
+    });
   });
 });

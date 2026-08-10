@@ -104,6 +104,15 @@ export function validateBulkShoppingListItems(items: unknown): string | null {
   return null;
 }
 
+const DIETARY_KEYS = [
+  "dairyFree",
+  "glutenFree",
+  "nutFree",
+  "soyFree",
+  "vegetarian",
+  "vegan",
+] as const;
+
 export function validatePreferences(body: Record<string, unknown>): string | null {
   if (body.theme != null && (typeof body.theme !== "string" || !THEMES.has(body.theme))) {
     return "Theme must be light, dark, or auto.";
@@ -113,6 +122,17 @@ export function validatePreferences(body: Record<string, unknown>): string | nul
     (typeof body.defaultUnitCategory !== "string" || !UNIT_CATEGORIES.has(body.defaultUnitCategory))
   ) {
     return "Invalid default unit category.";
+  }
+  if (body.dietaryPreferences != null) {
+    if (typeof body.dietaryPreferences !== "object" || Array.isArray(body.dietaryPreferences)) {
+      return "Dietary preferences must be an object.";
+    }
+    const prefs = body.dietaryPreferences as Record<string, unknown>;
+    for (const key of DIETARY_KEYS) {
+      if (prefs[key] != null && typeof prefs[key] !== "boolean") {
+        return `Dietary preference "${key}" must be a boolean.`;
+      }
+    }
   }
   return null;
 }

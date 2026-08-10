@@ -1,5 +1,9 @@
 import { Router, Request } from "express";
 import { authMiddleware } from "../middleware/auth.js";
+import {
+  mapDietaryPreferencesToSpoonacular,
+  parseDietaryPreferencesFromQuery,
+} from "../utils/dietaryPreferences.js";
 import { fetchSpoonacularSubstitutes } from "../utils/spoonacularSubstitutes.js";
 
 const router = Router();
@@ -20,7 +24,14 @@ router.get("/substitutes", async (req: AuthRequest, res) => {
     return;
   }
 
-  const substitutes = await fetchSpoonacularSubstitutes(rawName, { apiKey });
+  const prefs = parseDietaryPreferencesFromQuery(req.query as Record<string, unknown>);
+  const { intolerances, diet } = mapDietaryPreferencesToSpoonacular(prefs);
+
+  const substitutes = await fetchSpoonacularSubstitutes(rawName, {
+    apiKey,
+    intolerances,
+    diet,
+  });
   res.json({ substitutes });
 });
 

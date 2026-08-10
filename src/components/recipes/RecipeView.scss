@@ -681,8 +681,22 @@
 
   &--muted {
     color: var(--text-muted);
-    margin-bottom: 0;
+    margin-bottom: 0.45rem;
   }
+}
+
+.recipe-view__sub-sourcing {
+  margin: -0.2rem 0 0.45rem;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
+.recipe-view__sub-disclaimer {
+  margin: 0.5rem 0 0;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: var(--text-muted);
 }
 
 .recipe-view__sub-cycle {

@@ -1,4 +1,5 @@
 import { substituteFallback } from "../data/substituteFallback";
+import type { SubstituteOption } from "../types/dietary";
 
 function normalizeIngredientName(name: string): string {
   return name.toLowerCase().trim().replace(/\s+/g, " ");
@@ -26,7 +27,7 @@ function nameVariants(name: string): string[] {
 }
 
 /** Case-insensitive fallback lookup with substring matching. */
-export function findFallbackSubstitutes(ingredientName: string): string[] {
+export function findFallbackSubstitutes(ingredientName: string): SubstituteOption[] {
   const variants = nameVariants(ingredientName);
 
   for (const variant of variants) {

@@ -4,6 +4,11 @@ import { useAuthStore } from "../store/authStore";
 import { useAuthModalStore } from "../store/authModalStore";
 import { toastSuccess, toastError } from "../store/toastStore";
 import { UNIT_CATEGORIES, CATEGORY_LABELS, type UnitCategory } from "../converters/units/unitUtils";
+import {
+  DIETARY_PREFERENCE_KEYS,
+  DIETARY_PREFERENCE_LABELS,
+  type DietaryPreferenceKey,
+} from "../types/dietary";
 import "./SettingsPage.scss";
 
 const THEME_OPTIONS: { value: Theme; label: string }[] = [
@@ -21,6 +26,8 @@ export function SettingsPage() {
   const setTheme = useSettingsStore((s) => s.setTheme);
   const defaultUnitCategory = useSettingsStore((s) => s.defaultUnitCategory);
   const setDefaultUnitCategory = useSettingsStore((s) => s.setDefaultUnitCategory);
+  const dietaryPreferences = useSettingsStore((s) => s.dietaryPreferences);
+  const setDietaryPreference = useSettingsStore((s) => s.setDietaryPreference);
   const savePreferences = useSettingsStore((s) => s.savePreferences);
   const openAuthModal = useAuthModalStore((s) => s.openAuthModal);
   const [saving, setSaving] = useState(false);
@@ -97,6 +104,45 @@ export function SettingsPage() {
         </label>
       </section>
 
+      <section className="settings-page__section">
+        <h2>Dietary preferences</h2>
+        <p className="settings-page__hint settings-page__hint--section">
+          Filters substitute suggestions when active. Not a certification claim — always check labels.
+        </p>
+        <ul className="settings-page__dietary-list">
+          {DIETARY_PREFERENCE_KEYS.map((key: DietaryPreferenceKey) => {
+            const active = dietaryPreferences[key];
+            return (
+              <li key={key} className="settings-page__dietary-row">
+                <span className="settings-page__label">{DIETARY_PREFERENCE_LABELS[key]}</span>
+                <div
+                  className="settings-page__segmented settings-page__segmented--compact"
+                  role="group"
+                  aria-label={DIETARY_PREFERENCE_LABELS[key]}
+                >
+                  <button
+                    type="button"
+                    className={`settings-page__segment${!active ? " settings-page__segment--active" : ""}`}
+                    aria-pressed={!active}
+                    onClick={() => setDietaryPreference(key, false)}
+                  >
+                    Off
+                  </button>
+                  <button
+                    type="button"
+                    className={`settings-page__segment${active ? " settings-page__segment--active" : ""}`}
+                    aria-pressed={active}
+                    onClick={() => setDietaryPreference(key, true)}
+                  >
+                    On
+                  </button>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+
       <div className="settings-page__save-row">
         <button
           type="button"
@@ -107,7 +153,9 @@ export function SettingsPage() {
           {saving ? "Saving…" : "Save settings"}
         </button>
         {isSignedIn && (
-          <p className="settings-page__save-hint">Required to sync theme and unit defaults to your account.</p>
+          <p className="settings-page__save-hint">
+            Required to sync theme, units, and dietary preferences to your account.
+          </p>
         )}
       </div>
 

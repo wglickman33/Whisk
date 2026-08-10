@@ -43,6 +43,46 @@
     margin: $space-xs 0 0;
     color: var(--text-muted);
     font-size: 0.8rem;
+
+    &--section {
+      margin: (-$space-sm) 0 $space-md;
+    }
+  }
+
+  &__dietary-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: $space-sm;
+  }
+
+  &__dietary-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $space-md;
+    flex-wrap: wrap;
+
+    .settings-page__label {
+      margin: 0;
+      color: var(--text);
+      font-size: 0.9rem;
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+  }
+
+  &__segmented--compact {
+    flex: 0 0 auto;
+    min-width: 7.5rem;
+
+    .settings-page__segment {
+      min-height: $touch-min;
+      padding: $space-sm $space-md;
+      font-size: 0.85rem;
+    }
   }
 
   &__btn {

@@ -31,9 +31,19 @@ export interface AuthUser {
   createdAt?: string;
 }
 
+export interface DietaryPreferencesPayload {
+  dairyFree: boolean;
+  glutenFree: boolean;
+  nutFree: boolean;
+  soyFree: boolean;
+  vegetarian: boolean;
+  vegan: boolean;
+}
+
 export interface UserPreferences {
   theme: string;
   defaultUnitCategory: string;
+  dietaryPreferences?: DietaryPreferencesPayload;
 }
 
 export const authApi = {
@@ -281,8 +291,16 @@ export const tagsApi = {
 };
 
 export const substitutesApi = {
-  get: async (ingredientName: string): Promise<string[]> => {
+  get: async (
+    ingredientName: string,
+    dietaryPreferences?: Partial<DietaryPreferencesPayload>
+  ): Promise<string[]> => {
     const params = new URLSearchParams({ name: ingredientName });
+    if (dietaryPreferences) {
+      for (const [key, value] of Object.entries(dietaryPreferences)) {
+        if (value === true) params.set(key, "1");
+      }
+    }
     const data = await api<{ substitutes: string[] }>(
       `/api/ingredients/substitutes?${params.toString()}`
     );

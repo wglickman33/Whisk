@@ -57,6 +57,24 @@ describe("fetchSpoonacularSubstitutes", () => {
     expect(calledUrl).toContain("apiKey=test-key");
   });
 
+  it("forwards intolerances and diet query params when provided", async () => {
+    const fetchFn = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ substitutes: [] }),
+    });
+
+    await fetchSpoonacularSubstitutes("butter", {
+      apiKey: "test-key",
+      fetchFn,
+      intolerances: "dairy,gluten",
+      diet: "vegan",
+    });
+
+    const calledUrl = fetchFn.mock.calls[0][0] as string;
+    expect(calledUrl).toContain("intolerances=dairy%2Cgluten");
+    expect(calledUrl).toContain("diet=vegan");
+  });
+
   it("returns empty on non-ok response", async () => {
     const fetchFn = vi.fn().mockResolvedValue({ ok: false, status: 402 });
     const result = await fetchSpoonacularSubstitutes("milk", {

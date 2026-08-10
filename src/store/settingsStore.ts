@@ -3,6 +3,11 @@ import { persist } from "zustand/middleware";
 import type { UnitCategory } from "../converters/units/unitUtils";
 import { preferencesApi } from "../api/client";
 import {
+  createEmptyDietaryPreferences,
+  parseDietaryPreferences,
+} from "../utils/dietaryPreferences";
+import type { DietaryPreferences, DietaryPreferenceKey } from "../types/dietary";
+import {
   applyEffectiveTheme,
   isThemePreference,
   resolveEffectiveTheme,
@@ -19,13 +24,19 @@ interface SettingsState {
   theme: Theme;
   effectiveTheme: EffectiveTheme;
   defaultUnitCategory: UnitCategory;
+  dietaryPreferences: DietaryPreferences;
   syncReady: boolean;
   setTheme: (theme: Theme) => void;
   toggleTheme: () => void;
   getEffectiveTheme: () => EffectiveTheme;
   setDefaultUnitCategory: (category: UnitCategory) => void;
+  setDietaryPreference: (key: DietaryPreferenceKey, value: boolean) => void;
   savePreferences: () => Promise<void>;
-  applyFromServer: (theme: string, defaultUnitCategory: string) => void;
+  applyFromServer: (
+    theme: string,
+    defaultUnitCategory: string,
+    dietaryPreferences?: unknown
+  ) => void;
   markSynced: () => void;
   resetSyncState: () => void;
 }
@@ -120,16 +131,23 @@ export const useSettingsStore = create<SettingsState>()(
       theme: "light",
       effectiveTheme: "light",
       defaultUnitCategory: "volume",
+      dietaryPreferences: createEmptyDietaryPreferences(),
       syncReady: false,
 
       getEffectiveTheme: () => resolveEffectiveTheme(get().theme),
 
-      applyFromServer: (theme, defaultUnitCategory) => {
+      applyFromServer: (theme, defaultUnitCategory, dietaryPreferences) => {
         const parsedTheme = parseTheme(theme);
         const category = parseUnitCategory(defaultUnitCategory);
+        const dietary = parseDietaryPreferences(dietaryPreferences);
         const effective = applyThemePreference(parsedTheme);
         ensureSystemThemeSubscription(get);
-        set({ theme: parsedTheme, effectiveTheme: effective, defaultUnitCategory: category });
+        set({
+          theme: parsedTheme,
+          effectiveTheme: effective,
+          defaultUnitCategory: category,
+          dietaryPreferences: dietary,
+        });
       },
 
       markSynced: () => set({ syncReady: true }),
@@ -140,9 +158,9 @@ export const useSettingsStore = create<SettingsState>()(
       },
 
       savePreferences: async () => {
-        const { theme, defaultUnitCategory } = get();
+        const { theme, defaultUnitCategory, dietaryPreferences } = get();
         if (localStorage.getItem("whisk_token")) {
-          await preferencesApi.update({ theme, defaultUnitCategory });
+          await preferencesApi.update({ theme, defaultUnitCategory, dietaryPreferences });
         }
         set({ syncReady: true });
       },
@@ -166,14 +184,33 @@ export const useSettingsStore = create<SettingsState>()(
       setDefaultUnitCategory: (category) => {
         set({ defaultUnitCategory: category });
       },
+
+      setDietaryPreference: (key, value) => {
+        set((s) => ({
+          dietaryPreferences: { ...s.dietaryPreferences, [key]: value },
+        }));
+      },
     }),
     {
       name: SETTINGS_PERSIST_KEY,
-      partialize: (s) => ({ theme: s.theme, defaultUnitCategory: s.defaultUnitCategory }),
+      partialize: (s) => ({
+        theme: s.theme,
+        defaultUnitCategory: s.defaultUnitCategory,
+        dietaryPreferences: s.dietaryPreferences,
+      }),
+      merge: (persisted, current) => {
+        const p = (persisted ?? {}) as Partial<SettingsState>;
+        return {
+          ...current,
+          ...p,
+          dietaryPreferences: parseDietaryPreferences(p.dietaryPreferences),
+        };
+      },
       onRehydrateStorage: () => (state) => {
         if (!state) return;
         const effective = applyThemePreference(state.theme);
         state.effectiveTheme = effective;
+        state.dietaryPreferences = parseDietaryPreferences(state.dietaryPreferences);
         ensureSystemThemeSubscription(() => useSettingsStore.getState());
       },
     }

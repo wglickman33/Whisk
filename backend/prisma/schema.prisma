@@ -14,6 +14,7 @@ model User {
   name                String?
   theme               String   @default("light")
   defaultUnitCategory String   @default("volume")
+  dietaryPreferences  Json     @default("{}")
   resetTokenHash      String?
   resetTokenExpires   DateTime?
   createdAt           DateTime @default(now())
