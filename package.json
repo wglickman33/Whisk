@@ -41,7 +41,7 @@
     "remark-gfm": "^4.0.1",
     "smol-toml": "^1.7.1",
     "vite-plugin-pwa": "^1.2.0",
-    "xlsx": "^0.18.5",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "zustand": "^5.0.11"
   },
   "devDependencies": {

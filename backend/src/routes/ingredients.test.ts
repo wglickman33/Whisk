@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import jwt from "jsonwebtoken";
 import request from "supertest";
 
-const JWT_SECRET = process.env.JWT_SECRET ?? "dev-secret-change-in-production";
 const USER_ID = "11111111-1111-1111-1111-111111111111";
 
 const fetchSpoonacularSubstitutes = vi.fn();
@@ -14,7 +13,8 @@ vi.mock("../utils/spoonacularSubstitutes.js", () => ({
 const { createApp } = await import("../app.js");
 
 function authHeader() {
-  const token = jwt.sign({ sub: USER_ID, email: "test@example.com" }, JWT_SECRET);
+  const secret = process.env.JWT_SECRET ?? "dev-secret-change-in-production";
+  const token = jwt.sign({ sub: USER_ID, email: "test@example.com" }, secret);
   return { Authorization: `Bearer ${token}` };
 }
 

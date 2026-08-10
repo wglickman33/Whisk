@@ -1,11 +1,13 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 
-const JWT_SECRET = process.env.JWT_SECRET ?? "dev-secret-change-in-production";
+function jwtSecret(): string {
+  return process.env.JWT_SECRET ?? "dev-secret-change-in-production";
+}
 
 export function verifyAccessToken(token: string): string | null {
   try {
-    const payload = jwt.verify(token, JWT_SECRET) as { sub: string };
+    const payload = jwt.verify(token, jwtSecret()) as { sub: string };
     return payload.sub ?? null;
   } catch {
     return null;
