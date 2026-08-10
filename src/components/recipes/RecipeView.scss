@@ -448,9 +448,9 @@
 
 .recipe-view__ingredient {
   display: grid;
-  grid-template-columns: 2.75rem 3.25rem 1fr auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.5rem 0.65rem;
   padding: 0.55rem 0.65rem;
   font-size: 0.95rem;
   line-height: 1.4;
@@ -461,7 +461,7 @@
 }
 
 .recipe-view__ingredients--selectable .recipe-view__ingredient {
-  grid-template-columns: 1.5rem 2.75rem 3.25rem 1fr auto;
+  grid-template-columns: 1.5rem auto minmax(0, 1fr) auto;
 }
 
 .recipe-view__ingredient:hover {
@@ -552,16 +552,22 @@
   transform: scale(1);
 }
 
+.recipe-view__ingredient-amount {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  min-width: 0;
+  max-width: 100%;
+  white-space: nowrap;
+}
+
 .recipe-view__ingredient-qty {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  text-align: right;
-  white-space: nowrap;
 }
 
 .recipe-view__ingredient-unit {
   color: var(--text-muted);
-  white-space: nowrap;
 }
 
 .recipe-view__ingredient-name {
@@ -570,38 +576,42 @@
 
 @media (max-width: 520px) {
   .recipe-view__ingredient {
-    grid-template-columns: 2.75rem 3.25rem minmax(0, 1fr);
+    grid-template-columns: auto minmax(0, 1fr);
     grid-template-rows: auto auto;
     align-items: start;
   }
 
-  .recipe-view__ingredient-qty,
-  .recipe-view__ingredient-unit {
+  .recipe-view__ingredient-amount {
+    grid-column: 1;
     grid-row: 1;
   }
 
   .recipe-view__ingredient-name {
-    grid-column: 3;
+    grid-column: 2;
     grid-row: 1;
   }
 
   .recipe-view__sub-btn {
-    grid-column: 3;
+    grid-column: 2;
     grid-row: 2;
     justify-self: start;
     margin-top: 0.1rem;
   }
 
   .recipe-view__ingredients--selectable .recipe-view__ingredient {
-    grid-template-columns: 1.5rem 2.75rem 3.25rem minmax(0, 1fr);
+    grid-template-columns: 1.5rem auto minmax(0, 1fr);
+  }
+
+  .recipe-view__ingredients--selectable .recipe-view__ingredient-amount {
+    grid-column: 2;
   }
 
   .recipe-view__ingredients--selectable .recipe-view__ingredient-name {
-    grid-column: 4;
+    grid-column: 3;
   }
 
   .recipe-view__ingredients--selectable .recipe-view__sub-btn {
-    grid-column: 4;
+    grid-column: 3;
   }
 }
 

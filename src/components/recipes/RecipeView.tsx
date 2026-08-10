@@ -529,11 +529,15 @@ export function RecipeView({
                         </span>
                       </label>
                     )}
-                    <span className="recipe-view__ingredient-qty">
-                      {ing.quantity > 0 ? ing.text : ""}
-                    </span>
-                    <span className="recipe-view__ingredient-unit">
-                      {ing.quantity > 0 ? ing.unit : ""}
+                    <span className="recipe-view__ingredient-amount">
+                      {ing.quantity > 0 ? (
+                        <>
+                          <span className="recipe-view__ingredient-qty">{ing.text}</span>
+                          {ing.unit ? (
+                            <span className="recipe-view__ingredient-unit">{ing.unit}</span>
+                          ) : null}
+                        </>
+                      ) : null}
                     </span>
                     <span className="recipe-view__ingredient-name">
                       {ing.name}
