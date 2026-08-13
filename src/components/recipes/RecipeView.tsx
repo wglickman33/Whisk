@@ -608,7 +608,7 @@ export function RecipeView({
                       )}
                       {!subIsLoading && subEntry?.noSubstitute && (
                         <p className="recipe-view__sub-text recipe-view__sub-text--muted">
-                          No common substitute — this one&apos;s pretty essential here.
+                          No common substitute - this one&apos;s pretty essential here.
                         </p>
                       )}
                       {!subIsLoading && subEntry && !subEntry.noSubstitute && (
@@ -620,7 +620,7 @@ export function RecipeView({
                           )}
                           {subEntry.preferencesRelaxed && (
                             <p className="recipe-view__sub-text recipe-view__sub-text--muted">
-                              None matched your dietary preferences — showing all options.
+                              None matched your dietary preferences - showing all options.
                             </p>
                           )}
                           {subEntry.substitutes.length > 1 && (

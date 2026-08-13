@@ -57,10 +57,10 @@ function establishSession(user: AuthUser, token: string): void {
   cacheUser(user);
 }
 
-/** Prefs / shopping sync — never block sign-in UI. */
+/** Prefs / shopping sync - never block sign-in UI. */
 function syncAfterAuth(): void {
   void syncUserDataFromServer().catch(() => {
-    /* offline — local data still usable; sync flags stay off until next successful sync */
+    /* offline - local data still usable; sync flags stay off until next successful sync */
   });
 }
 

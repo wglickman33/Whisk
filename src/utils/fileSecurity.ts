@@ -1,7 +1,7 @@
 /**
  * Client-side file upload validation.
  * Files are processed locally and never sent to our server for conversion,
- * but malicious files can still attack the user's browser — validate before processing.
+ * but malicious files can still attack the user's browser - validate before processing.
  */
 
 import { getSupportedOutputFormats } from "../converters/core/conversionEngine";

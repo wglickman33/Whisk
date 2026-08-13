@@ -266,7 +266,7 @@ router.post("/:id/leave", async (req: AuthRequest, res) => {
     }
 
     if (list.ownerUserId === userId) {
-      res.status(400).json({ error: "Owners cannot leave — delete the list instead." });
+      res.status(400).json({ error: "Owners cannot leave - delete the list instead." });
       return;
     }
 

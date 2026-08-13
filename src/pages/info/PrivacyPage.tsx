@@ -46,7 +46,7 @@ export function PrivacyPage() {
         </p>
         <p>
           When you use a shared shopping list, Whisk opens a live connection (Server-Sent Events) to our API so
-          changes from other members appear in real time. This is only used for list sync—not for analytics or
+          changes from other members appear in real time. This is only used for list sync - not for analytics or
           advertising.
         </p>
       </section>

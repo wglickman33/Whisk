@@ -88,7 +88,7 @@ function schedulePrefsSave(get: () => SettingsState): void {
     try {
       await get().savePreferences();
     } catch {
-      /* silent — sidebar quick toggle */
+      /* silent - sidebar quick toggle */
     }
   }, 600);
 }

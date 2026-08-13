@@ -150,7 +150,7 @@ export async function createRecipePdf(recipe: Recipe): Promise<Uint8Array> {
     const qty = qtyParts.join(" ");
     const nameLine = qty ? `${qty}  ${ing.name.trim()}` : ing.name.trim();
     const note = ing.notes?.trim() ? ` (${ing.notes.trim()})` : "";
-    const optional = ing.isOptional ? " — optional" : "";
+    const optional = ing.isOptional ? " - optional" : "";
 
     ensureSpace(16);
     page.drawCircle({

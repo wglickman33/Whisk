@@ -55,7 +55,7 @@ export function DocsPage() {
           </p>
           <p>
             <strong>Live connections:</strong> shared shopping lists use Server-Sent Events to our API for
-            real-time updates between members—not third-party analytics.
+            real-time updates between members - not third-party analytics.
           </p>
         </DocSection>
 

@@ -9,7 +9,7 @@ const targetDir = join(root, "public/ffmpeg");
 const files = ["ffmpeg-core.js", "ffmpeg-core.wasm"];
 
 if (!existsSync(sourceDir)) {
-  console.warn("[copy-ffmpeg-core] @ffmpeg/core not found — skip");
+  console.warn("[copy-ffmpeg-core] @ffmpeg/core not found - skip");
   process.exit(0);
 }
 

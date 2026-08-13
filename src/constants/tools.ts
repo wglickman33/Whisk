@@ -268,7 +268,7 @@ export const TOOLS: ToolDef[] = [
     route: "/tools/html-preview",
     label: "Preview HTML",
     shortLabel: "HTML",
-    description: "See how HTML will look — unsafe scripts are removed.",
+    description: "See how HTML will look - unsafe scripts are removed.",
     category: "writing",
     keywords: ["html", "preview", "web", "markup", "template"],
     steps: ["Paste your HTML", "Check the live preview", "Copy or use your markup"],

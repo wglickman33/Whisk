@@ -9,6 +9,7 @@ import {
   DIETARY_PREFERENCE_LABELS,
   type DietaryPreferenceKey,
 } from "../types/dietary";
+import { ToriCrossLink } from "../components/ui/ToriCrossLink";
 import "./SettingsPage.scss";
 
 const THEME_OPTIONS: { value: Theme; label: string }[] = [
@@ -107,7 +108,7 @@ export function SettingsPage() {
       <section className="settings-page__section">
         <h2>Dietary preferences</h2>
         <p className="settings-page__hint settings-page__hint--section">
-          Filters substitute suggestions when active. Not a certification claim — always check labels.
+          Filters substitute suggestions when active. Not a certification claim - always check labels.
         </p>
         <ul className="settings-page__dietary-list">
           {DIETARY_PREFERENCE_KEYS.map((key: DietaryPreferenceKey) => {
@@ -190,6 +191,8 @@ export function SettingsPage() {
           </div>
         </section>
       )}
+
+      <ToriCrossLink />
     </div>
   );
 }

@@ -3,7 +3,7 @@
  *
  * MATCHING STRATEGY
  * ------------------
- * 1. Overrides (checked first): a small set of blanket modifiers — "frozen", "canned" —
+ * 1. Overrides (checked first): a small set of blanket modifiers - "frozen", "canned" - 
  *    that should win regardless of what other word appears in the ingredient name.
  *    e.g. "frozen broccoli" should be Frozen, not Produce, even though "broccoli" is a
  *    valid Produce keyword.
@@ -15,7 +15,7 @@
  *
  *    All keywords are pooled together and sorted by word count (then length) before
  *    matching, so multi-word phrases always win over the shorter generic word they
- *    contain — regardless of which category each is listed under. This is how the same
+ *    contain - regardless of which category each is listed under. This is how the same
  *    base word safely means different things in different aisles:
  *
  *      "pepper" alone           -> Produce (fresh bell/chili pepper, the common case)

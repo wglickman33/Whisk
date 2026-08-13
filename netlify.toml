@@ -4,6 +4,7 @@
 
 [build.environment]
   VITE_API_URL = "https://whisk-81175bd1f0e4.herokuapp.com"
+  VITE_TORI_URL = "https://torihome.netlify.app"
 
 [[headers]]
   for = "/ffmpeg/*"

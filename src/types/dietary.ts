@@ -1,4 +1,4 @@
-/** Universal dietary preference flags — not certification or cultural claims. */
+/** Universal dietary preference flags - not certification or cultural claims. */
 export type DietaryPreferenceKey =
   | "dairyFree"
   | "glutenFree"
@@ -48,7 +48,7 @@ export const DEFAULT_DIETARY_PREFERENCES: DietaryPreferences = {
 };
 
 export const DIETARY_FILTER_DISCLAIMER =
-  "Reflects ingredient category, not verified certification or packaging — always check labels if this matters for you.";
+  "Reflects ingredient category, not verified certification or packaging - always check labels if this matters for you.";
 
 export const SOURCING_NOTE_ANIMAL_DERIVED =
-  "May be animal-derived depending on source — check labeling if this matters for you.";
+  "May be animal-derived depending on source - check labeling if this matters for you.";

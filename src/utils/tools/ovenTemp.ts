@@ -8,7 +8,7 @@ export interface OvenTempReading {
 }
 
 const GAS_MARK_TABLE: { mark: string; celsius: number }[] = [
-  { mark: "—", celsius: 0 },
+  { mark: "-", celsius: 0 },
   { mark: "¼", celsius: 110 },
   { mark: "½", celsius: 120 },
   { mark: "1", celsius: 140 },
@@ -31,7 +31,7 @@ export function celsiusToFahrenheit(c: number): number {
 }
 
 export function celsiusToGasMark(celsius: number): string {
-  if (celsius < 100) return "—";
+  if (celsius < 100) return "-";
   let best = GAS_MARK_TABLE[1];
   let bestDiff = Math.abs(celsius - best.celsius);
   for (const entry of GAS_MARK_TABLE.slice(1)) {
@@ -41,7 +41,7 @@ export function celsiusToGasMark(celsius: number): string {
       bestDiff = diff;
     }
   }
-  return bestDiff <= 10 ? best.mark : "—";
+  return bestDiff <= 10 ? best.mark : "-";
 }
 
 export function fanAdjustedCelsius(celsius: number): number {
@@ -65,7 +65,7 @@ export function convertOvenTemp(value: number, from: TempUnit): OvenTempReading 
 }
 
 export function formatOvenTempSummary(reading: OvenTempReading): string {
-  const gas = reading.gasMark === "—" ? "Gas mark N/A" : `Gas mark ${reading.gasMark}`;
+  const gas = reading.gasMark === "-" ? "Gas mark N/A" : `Gas mark ${reading.gasMark}`;
   return [
     `${reading.fahrenheit}°F`,
     `${reading.celsius}°C (conventional)`,

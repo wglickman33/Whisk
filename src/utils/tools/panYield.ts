@@ -69,7 +69,7 @@ export function calculatePanYield(fromArea: number, toArea: number): PanYieldRes
       ? `Use ${factor}× the ingredients (about ${percentChange}% more).`
       : factor < 1
         ? `Use ${factor}× the ingredients (about ${Math.abs(percentChange)}% less).`
-        : "Same size — no ingredient change needed.";
+        : "Same size - no ingredient change needed.";
 
   const timeNote =
     factor === 1

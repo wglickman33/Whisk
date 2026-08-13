@@ -82,7 +82,7 @@ export function mapDietaryPreferencesToSpoonacular(prefs: DietaryPreferences): {
   };
 }
 
-/** Wrap plain API strings as options (untagged — filtering is via Spoonacular params). */
+/** Wrap plain API strings as options (untagged - filtering is via Spoonacular params). */
 export function stringsToSubstituteOptions(texts: string[]): SubstituteOption[] {
   return texts.map((text) => ({
     text,

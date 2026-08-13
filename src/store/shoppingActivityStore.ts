@@ -127,7 +127,7 @@ export const useShoppingActivityStore = create<ShoppingActivityState>()(
             unreadCount: computeUnread(merged),
           });
         } catch {
-          /* offline or auth error — keep last known state */
+          /* offline or auth error - keep last known state */
         } finally {
           set({ syncing: false });
         }

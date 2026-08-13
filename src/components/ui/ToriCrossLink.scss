@@ -1,0 +1,139 @@
+@use "../../styles/tokens" as *;
+
+.tori-cross-link {
+  &--card {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: $space-lg;
+    margin-top: $space-xl;
+    padding: $space-lg;
+    border: 1px solid var(--border);
+    border-radius: $radius-md;
+    background: var(--bg-elevated);
+    box-shadow: var(--shadow);
+    transition:
+      background-color $transition-base ease,
+      border-color $transition-base ease;
+
+    &:hover {
+      background: color-mix(in srgb, var(--accent-muted) 55%, var(--bg-elevated));
+      border-color: var(--border-hover);
+    }
+  }
+
+  &__brand {
+    display: flex;
+    align-items: flex-start;
+    gap: $space-md;
+    min-width: min(100%, 20rem);
+    flex: 1;
+  }
+
+  &__logo-wrap {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: #12121f;
+    flex-shrink: 0;
+    clip-path: circle(50%);
+  }
+
+  &__logo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
+  }
+
+  &__mark {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+
+  &__title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0;
+  }
+
+  &__body {
+    margin: $space-sm 0 0;
+    color: var(--text-muted);
+    max-width: 36rem;
+    font-size: 0.9375rem;
+    line-height: 1.45;
+  }
+
+  &__cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: $touch-min;
+    padding: 0 $space-lg;
+    border-radius: $radius-md;
+    border: none;
+    background: var(--accent);
+    color: white;
+    text-decoration: none;
+    font: inherit;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color $transition-base ease;
+
+    &:hover {
+      background: var(--accent-hover);
+      color: white;
+    }
+  }
+
+  &--inline {
+    display: inline-flex;
+    align-items: center;
+    gap: $space-sm;
+    min-height: $touch-min;
+    padding: 0 $space-sm;
+    color: var(--accent);
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-decoration: none;
+    border-radius: $radius-sm;
+    transition: background-color $transition-base ease, color $transition-base ease;
+
+    &:hover {
+      background: var(--accent-muted);
+      color: var(--accent-hover);
+    }
+  }
+}
+
+[data-theme="dark"] {
+  .tori-cross-link {
+    &--card {
+      background: var(--surface);
+      border-color: var(--border);
+      box-shadow: var(--shadow-lg);
+
+      &:hover {
+        background: var(--accent-muted);
+        border-color: var(--border-hover);
+      }
+    }
+
+    &--inline {
+      color: var(--accent);
+
+      &:hover {
+        background: var(--accent-muted);
+        color: var(--accent-hover);
+      }
+    }
+  }
+}

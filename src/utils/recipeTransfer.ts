@@ -247,7 +247,7 @@ function formatIngredientLine(ing: {
   parts.push(ing.name.trim());
   let line = parts.join(" ");
   if (ing.notes?.trim()) line += ` (${ing.notes.trim()})`;
-  if (ing.isOptional) line += " — optional";
+  if (ing.isOptional) line += " - optional";
   return line;
 }
 
