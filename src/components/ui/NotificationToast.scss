@@ -19,7 +19,7 @@
 
 .notification-toast {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: $space-sm;
   padding: $space-sm $space-md;
   border-radius: $radius-md;
@@ -62,11 +62,11 @@
   }
 
   &--info {
-    border-left-color: #3b82f6;
+    border-left-color: var(--accent);
 
     .notification-toast__icon {
-      background: #3b82f6;
-      color: white;
+      background: var(--accent);
+      color: #1a1a1d;
     }
   }
 }
@@ -89,13 +89,13 @@
 .notification-toast__action {
   font-size: 0.8rem;
   font-weight: 600;
-  color: var(--accent);
-  text-decoration: none;
+  color: var(--text);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
   transition: color $transition-base ease, opacity $transition-base ease;
 
   &:hover {
-    color: var(--accent-hover);
-    text-decoration: underline;
+    color: var(--accent);
   }
 }
 
@@ -126,7 +126,10 @@
   font-size: 1.25rem;
   line-height: 1;
   cursor: pointer;
-  padding: $space-xs;
+  padding: 0;
+  margin-top: 0.1rem;
+  width: 1.5rem;
+  height: 1.5rem;
   display: flex;
   align-items: center;
   justify-content: center;

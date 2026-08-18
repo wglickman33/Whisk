@@ -102,7 +102,7 @@ export function Home() {
           <span className="home-card__icon" aria-hidden>
             <IconSous />
           </span>
-          <h2 className="home-card__title">Sous</h2>
+          <h2 className="home-card__title">Sous AI</h2>
           <p className="home-card__desc">Ask about recipes, substitutions, or your shopping list.</p>
         </Link>
         <Link to={SHOPPING_LIST_PATH} className="home-card">

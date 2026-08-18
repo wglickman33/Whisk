@@ -38,7 +38,14 @@ function ToastItem({ item, onClose }: { item: ToastItem; onClose: () => void }) 
         <div className="notification-toast__text">
           <span className="notification-toast__message">{item.message}</span>
           {item.actionHref && item.actionLabel && (
-            <Link to={item.actionHref} className="notification-toast__action" onClick={dismiss}>
+            <Link
+              to={item.actionHref}
+              className="notification-toast__action"
+              onClick={() => {
+                item.onAction?.();
+                dismiss();
+              }}
+            >
               {item.actionLabel}
             </Link>
           )}

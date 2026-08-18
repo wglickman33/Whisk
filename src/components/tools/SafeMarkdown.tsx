@@ -16,6 +16,11 @@ const components: Components = {
       </a>
     );
   },
+  table: ({ children }) => (
+    <div className="md-table-wrap">
+      <table>{children}</table>
+    </div>
+  ),
 };
 
 type Props = {

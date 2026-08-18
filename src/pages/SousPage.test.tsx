@@ -3,6 +3,7 @@ import { render, screen, fireEvent, cleanup, waitFor } from "@testing-library/re
 import { MemoryRouter } from "react-router-dom";
 import { SousPage } from "./SousPage";
 import type { SousStreamEvent } from "../api/client";
+import { useSousStore } from "../store/sousStore";
 
 const chatStream = vi.fn();
 const bulkAdd = vi.fn();
@@ -65,13 +66,16 @@ afterEach(() => {
   toastError.mockReset();
   signedIn = true;
   loading = false;
+  useSousStore.getState().resetChat();
+  useSousStore.getState().closeWidget();
 });
 
 describe("SousPage", () => {
   it("asks guests to sign in", () => {
     signedIn = false;
     renderSous();
-    expect(screen.getByText(/sign in to chat with sous/i)).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Sous AI" })).toBeTruthy();
+    expect(screen.getByText(/sign in to chat with sous ai/i)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /sign in/i }));
     expect(openAuthModal).toHaveBeenCalledWith("login");
     expect(screen.queryByLabelText(/message/i)).toBeNull();
@@ -237,5 +241,25 @@ describe("SousPage", () => {
     });
     expect(toastError).toHaveBeenCalled();
     expect(screen.getByLabelText(/message/i)).toHaveProperty("value", "Hello");
+  });
+
+  it("clears the conversation and returns to the empty state", async () => {
+    await mockStream([{ type: "reply", reply: "Use oat milk." }], "Use oat milk.");
+    renderSous();
+
+    fireEvent.change(screen.getByLabelText(/message/i), {
+      target: { value: "What can I use instead of milk?" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /send/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Use oat milk.")).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /clear chat/i }));
+
+    expect(screen.queryByText("Use oat milk.")).toBeNull();
+    expect(screen.queryByRole("button", { name: /clear chat/i })).toBeNull();
+    expect(screen.getByText(/what can i help with/i)).toBeTruthy();
   });
 });

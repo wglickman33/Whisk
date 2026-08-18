@@ -1,10 +1,32 @@
 import { describe, it, expect, vi } from "vitest";
-import { runSousAgent, MAX_SOUS_TOOL_ROUNDS } from "./sousAgent.js";
+import { runSousAgent, MAX_SOUS_TOOL_ROUNDS, SOUS_SYSTEM_PROMPT } from "./sousAgent.js";
+import { SOUS_OFF_TOPIC_REPLY } from "./sousGuardrails.js";
 import type { GroqChatMessage, GroqChatResult } from "./groqChat.js";
 
 const USER_ID = "11111111-1111-1111-1111-111111111111";
 
 describe("runSousAgent", () => {
+  it("sends a system prompt that follows intent and stays in the kitchen", () => {
+    expect(SOUS_SYSTEM_PROMPT).toMatch(/follow the user's latest request/i);
+    expect(SOUS_SYSTEM_PROMPT).toMatch(/different \/ similar \/ new \/ variation/i);
+    expect(SOUS_SYSTEM_PROMPT).toMatch(/original recipe ideas/i);
+    expect(SOUS_SYSTEM_PROMPT).toMatch(/never invent facts about THEIR Whisk data/i);
+    expect(SOUS_SYSTEM_PROMPT).toMatch(/politics, presidents, news, taxes/i);
+  });
+
+  it("refuses off-topic questions without calling Groq or tools", async () => {
+    const fetchGroqChat = vi.fn();
+    const executeTool = vi.fn();
+    const result = await runSousAgent(
+      USER_ID,
+      [{ role: "user", content: "Who was the last president?" }],
+      { apiKey: "key", fetchGroqChat, executeTool }
+    );
+    expect(result).toEqual({ ok: true, reply: SOUS_OFF_TOPIC_REPLY });
+    expect(fetchGroqChat).not.toHaveBeenCalled();
+    expect(executeTool).not.toHaveBeenCalled();
+  });
+
   it("returns a plain reply without executing tools", async () => {
     const fetchGroqChat = vi.fn().mockResolvedValue({
       ok: true,

@@ -1,7 +1,9 @@
 import { useEffect, useId, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { whiskLogoAmber, toriLogo } from "../../assets/logos";
 import { getToriUrl } from "../../utils/toriUrl";
+import { useSousStore } from "../../store/sousStore";
+import { toastInfo } from "../../store/toastStore";
 import "./FloatingAppsMenu.scss";
 
 function FabPlusIcon() {
@@ -37,7 +39,9 @@ export function FloatingAppsMenu() {
   const togglerId = useId();
   const rootRef = useRef<HTMLElement>(null);
   const [open, setOpen] = useState(false);
-  const [panel, setPanel] = useState<"none" | "tori" | "sous">("none");
+  const [panel, setPanel] = useState<"none" | "tori">("none");
+  const openWidget = useSousStore((s) => s.openWidget);
+  const location = useLocation();
 
   useEffect(() => {
     if (!open && panel === "none") return;
@@ -103,33 +107,6 @@ export function FloatingAppsMenu() {
         </aside>
       ) : null}
 
-      {panel === "sous" ? (
-        <aside className="floating-apps__panel" aria-label="Sous AI">
-          <div className="floating-apps__panel-top">
-            <div className="floating-apps__panel-brand">
-              <img src={whiskLogoAmber} alt="" className="floating-apps__panel-logo" />
-              <div>
-                <p className="floating-apps__panel-eyebrow">In Whisk</p>
-                <p className="floating-apps__panel-title">Sous AI</p>
-              </div>
-            </div>
-            <button type="button" className="floating-apps__panel-close" onClick={closeAll} aria-label="Close">
-              <FabCloseIcon />
-            </button>
-          </div>
-          <p className="floating-apps__panel-body">
-            Ask about recipes, substitutions, or your shopping list.
-          </p>
-          <Link
-            className="floating-apps__panel-cta floating-apps__panel-cta--sous"
-            to="/sous"
-            onClick={closeAll}
-          >
-            Open Sous
-          </Link>
-        </aside>
-      ) : null}
-
       <input
         type="checkbox"
         id={togglerId}
@@ -170,8 +147,17 @@ export function FloatingAppsMenu() {
             data-tooltip="Sous AI"
             aria-label="Open Sous AI"
             onClick={() => {
-              setPanel("sous");
+              setPanel("none");
               setOpen(false);
+              if (location.pathname === "/sous") {
+                toastInfo("You're already in the full Sous AI view.", {
+                  actionLabel: "Use widget on Home",
+                  actionHref: "/",
+                  onAction: openWidget,
+                });
+                return;
+              }
+              openWidget();
             }}
           >
             <img src={whiskLogoAmber} alt="" />

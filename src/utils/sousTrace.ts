@@ -1,6 +1,6 @@
 export const SOUS_TOOL_LABELS: Record<string, string> = {
   search_recipes: "Searching recipes",
-  get_recipe_ingredients: "Reading ingredients",
+  get_recipe_ingredients: "Reading recipe",
   check_substitute: "Checking substitutes",
   get_shopping_list: "Reading shopping list",
   add_to_shopping_list: "Proposing list items",

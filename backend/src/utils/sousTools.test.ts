@@ -111,6 +111,10 @@ describe("sousTools", () => {
         { name: "flour", quantity: 2, unit: "cups", notes: null, isOptional: false },
         { name: "milk", quantity: 1, unit: "cup", notes: "whole", isOptional: false },
       ],
+      steps: [
+        { order: 1, instruction: "Mix the batter.", timerMinutes: null },
+        { order: 2, instruction: "Cook on a griddle.", timerMinutes: 3 },
+      ],
     });
 
     const scaled = JSON.parse(await getRecipeIngredients(USER_ID, RECIPE_ID, 8));
@@ -120,6 +124,10 @@ describe("sousTools", () => {
     expect(scaled.servings).toBe(8);
     expect(scaled.ingredients[0].quantity).toBe(4);
     expect(scaled.ingredients[1].quantity).toBe(2);
+    expect(scaled.steps).toEqual([
+      { order: 1, instruction: "Mix the batter." },
+      { order: 2, instruction: "Cook on a griddle.", timerMinutes: 3 },
+    ]);
 
     findFirst.mockResolvedValue(null);
     expect(JSON.parse(await getRecipeIngredients(USER_ID, RECIPE_ID))).toEqual({

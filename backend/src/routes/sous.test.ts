@@ -116,6 +116,19 @@ describe("POST /api/sous/chat", () => {
     expect(res.body.pendingAction).toBeUndefined();
   });
 
+  it("refuses off-topic questions without calling Groq", async () => {
+    process.env.GROQ_API_KEY = "test-key";
+
+    const res = await request(app)
+      .post("/api/sous/chat")
+      .set(authHeader())
+      .send({ messages: [{ role: "user", content: "Who was the last president?" }] });
+
+    expect(res.status).toBe(200);
+    expect(res.body.reply).toMatch(/don't cover things like politics/i);
+    expect(fetchGroqChat).not.toHaveBeenCalled();
+  });
+
   it("returns a pending shopping list action without writing items", async () => {
     process.env.GROQ_API_KEY = "test-key";
     shoppingListFindMany.mockResolvedValue([

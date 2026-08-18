@@ -19,4 +19,15 @@ describe("SafeMarkdown", () => {
     expect(link.getAttribute("rel")).toBe("noopener noreferrer");
     expect(link.getAttribute("target")).toBe("_blank");
   });
+
+  it("wraps markdown tables so they can scroll instead of overflowing", () => {
+    const { container } = render(
+      <SafeMarkdown>{`| Ingredient | Quantity |\n| --- | --- |\n| Salmon | 1.5 lb |`}</SafeMarkdown>
+    );
+    const wrap = container.querySelector(".md-table-wrap");
+    expect(wrap).toBeTruthy();
+    expect(wrap?.querySelector("table")).toBeTruthy();
+    expect(screen.getByText("Salmon")).toBeTruthy();
+    expect(screen.getByText("1.5 lb")).toBeTruthy();
+  });
 });

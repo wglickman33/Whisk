@@ -46,7 +46,7 @@ export const SOUS_TOOLS: GroqToolDefinition[] = [
     function: {
       name: "search_recipes",
       description:
-        "Search the signed-in user's saved Whisk recipes by title, description, ingredient, or tag. Use this whenever they ask what they can cook or whether they have a recipe.",
+        "Search the signed-in user's saved Whisk recipes by title, description, ingredient, or tag. Use this to find a saved recipe they named, or to ground a variation. Do not treat this as the whole answer when they asked for a new, different, or similar recipe.",
       parameters: {
         type: "object",
         properties: {
@@ -64,7 +64,7 @@ export const SOUS_TOOLS: GroqToolDefinition[] = [
     function: {
       name: "get_recipe_ingredients",
       description:
-        "Get ingredients for one of the user's recipes by id. Optionally scale quantities to a target serving count.",
+        "Get ingredients and steps for one of the user's saved recipes by id. Use this to answer questions about a saved dish, compare against a shopping list, or ground a similar-recipe idea. Optionally scale quantities to a target serving count.",
       parameters: {
         type: "object",
         properties: {
@@ -243,6 +243,7 @@ export async function getRecipeIngredients(
     where: { id: recipeId, userId },
     include: {
       ingredients: { orderBy: { order: "asc" as const } },
+      steps: { orderBy: { order: "asc" as const }, select: { order: true, instruction: true, timerMinutes: true } },
     },
   });
   if (!recipe) {
@@ -265,6 +266,11 @@ export async function getRecipeIngredients(
       unit: ing.unit,
       notes: ing.notes,
       isOptional: ing.isOptional,
+    })),
+    steps: recipe.steps.map((step) => ({
+      order: step.order,
+      instruction: step.instruction,
+      ...(step.timerMinutes != null ? { timerMinutes: step.timerMinutes } : {}),
     })),
   });
 }

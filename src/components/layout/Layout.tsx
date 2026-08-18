@@ -7,6 +7,7 @@ import { MobileHeader } from "./MobileHeader";
 import { AuthModal } from "../auth/AuthModal";
 import { NotificationToastContainer } from "../ui/NotificationToast";
 import { FloatingAppsMenu } from "../ui/FloatingAppsMenu";
+import { SousWidget } from "../sous/SousWidget";
 import { useShoppingListStream } from "../../hooks/useShoppingListStream";
 import { MenuProvider, useMenu } from "../../context/MenuContext";
 import { useSidebarStore } from "../../store/sidebarStore";
@@ -75,6 +76,7 @@ function LayoutInner() {
       </div>
       <AuthModal />
       <NotificationToastContainer />
+      <SousWidget />
       <FloatingAppsMenu />
     </div>
   );

@@ -148,6 +148,7 @@ $tori-ink: #12121f;
     &--sous {
       background: var(--bg-elevated);
       border-color: var(--accent);
+      color: var(--accent);
       box-shadow: 0 8px 20px rgba(46, 38, 32, 0.16);
 
       &:hover,
@@ -193,6 +194,19 @@ $tori-ink: #12121f;
     &:hover::after,
     &:focus-visible::after {
       opacity: 1;
+    }
+  }
+
+  &__bubble-icon {
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    color: inherit;
+
+    svg {
+      width: 22px;
+      height: 22px;
     }
   }
 
@@ -391,6 +405,7 @@ $tori-ink: #12121f;
   .floating-apps__bubble--sous {
     background: var(--surface);
     border-color: var(--accent);
+    color: var(--accent);
     box-shadow: 0 8px 18px rgba(0, 0, 0, 0.3);
 
     &:hover,

@@ -247,6 +247,7 @@
   }
 
   svg {
+    display: block;
     width: 20px;
     height: 20px;
   }
@@ -325,12 +326,13 @@
 
   .app-sidebar--collapsed & {
     justify-content: center;
-    padding: 12px;
+    padding: 0;
     margin: 0 auto $space-sm;
     width: 44px;
     height: 44px;
     min-height: 44px;
     box-sizing: border-box;
+    border-inline-start-width: 0;
 
     &:last-child {
       margin-bottom: 0;
@@ -359,12 +361,19 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
+    line-height: 0;
+
+    svg {
+      display: block;
+      width: 20px;
+      height: 20px;
+    }
 
     .app-sidebar--collapsed & {
-      width: 24px;
-      height: 24px;
+      width: 20px;
+      height: 20px;
     }
   }
 
@@ -408,15 +417,27 @@
   .app-sidebar--collapsed & {
     width: 44px;
     height: 44px;
-    padding: 12px;
+    padding: 0;
+    box-sizing: border-box;
+
+    svg {
+      display: block;
+      width: 20px;
+      height: 20px;
+    }
   }
 
   &__icon {
     display: flex;
     align-items: center;
     justify-content: center;
-    min-width: 20px;
-    min-height: 20px;
+    width: 20px;
+    height: 20px;
+    line-height: 0;
+
+    svg {
+      display: block;
+    }
   }
 }
 
@@ -577,6 +598,7 @@
   overflow-x: hidden;
   background-color: var(--bg);
   min-width: 0;
+  min-height: 0;
   -webkit-overflow-scrolling: touch;
 
   @media (max-width: 640px) {
@@ -586,4 +608,17 @@
   @media (max-width: 480px) {
     padding: $space-md;
   }
+
+  &:has(.sous-page) {
+    overflow: hidden;
+    overscroll-behavior: none;
+    display: flex;
+    flex-direction: column;
+    padding-block: $space-sm;
+
+    @media (max-width: 640px) {
+      padding-block: $space-xs;
+    }
+  }
 }
+

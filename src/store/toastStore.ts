@@ -8,7 +8,14 @@ export interface ToastItem {
   message: string;
   actionLabel?: string;
   actionHref?: string;
+  onAction?: () => void;
 }
+
+export type ToastActionOptions = {
+  actionLabel?: string;
+  actionHref?: string;
+  onAction?: () => void;
+};
 
 function makeId(): string {
   return `toast-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -16,7 +23,7 @@ function makeId(): string {
 
 interface ToastState {
   items: ToastItem[];
-  add: (type: ToastType, message: string, options?: { actionLabel?: string; actionHref?: string }) => string;
+  add: (type: ToastType, message: string, options?: ToastActionOptions) => string;
   remove: (id: string) => void;
 }
 
@@ -33,6 +40,7 @@ export const useToastStore = create<ToastState>()((set) => ({
           message,
           actionLabel: options?.actionLabel,
           actionHref: options?.actionHref,
+          onAction: options?.onAction,
         },
       ],
     }));
@@ -42,10 +50,7 @@ export const useToastStore = create<ToastState>()((set) => ({
 }));
 
 /** Show a success toast. */
-export function toastSuccess(
-  message: string,
-  options?: { actionLabel?: string; actionHref?: string }
-): string {
+export function toastSuccess(message: string, options?: ToastActionOptions): string {
   return useToastStore.getState().add("success", message, options);
 }
 
@@ -60,6 +65,6 @@ export function toastWarning(message: string): string {
 }
 
 /** Show an info toast. */
-export function toastInfo(message: string): string {
-  return useToastStore.getState().add("info", message);
+export function toastInfo(message: string, options?: ToastActionOptions): string {
+  return useToastStore.getState().add("info", message, options);
 }
