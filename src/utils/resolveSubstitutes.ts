@@ -26,12 +26,11 @@ export async function resolveSubstitutes(
   findFallback: (name: string) => SubstituteOption[] = findFallbackSubstitutes,
   preferences: DietaryPreferences = createEmptyDietaryPreferences()
 ): Promise<SubstituteResolution> {
-  const prefsActive = hasActiveDietaryPreferences(preferences);
+  const local = resolveFallbackSubstitutes(ingredientName, preferences, findFallback);
 
   try {
     const apiResults = await fetchApi(ingredientName, preferences);
     if (apiResults.length > 0) {
-      // Spoonacular filtering is via query params; treat returned strings as display options.
       return {
         substitutes: stringsToSubstituteOptions(apiResults),
         noSubstitute: false,
@@ -39,23 +38,24 @@ export async function resolveSubstitutes(
         preferencesRelaxed: false,
       };
     }
-
-    const fallback = findFallback(ingredientName);
-    const { options, preferencesRelaxed } = applyDietaryFilter(fallback, preferences);
-    return {
-      substitutes: options,
-      noSubstitute: options.length === 0,
-      source: options.length > 0 ? "fallback" : "none",
-      preferencesRelaxed: prefsActive ? preferencesRelaxed : false,
-    };
+    return local;
   } catch {
-    const fallback = findFallback(ingredientName);
-    const { options, preferencesRelaxed } = applyDietaryFilter(fallback, preferences);
-    return {
-      substitutes: options,
-      noSubstitute: options.length === 0,
-      source: options.length > 0 ? "fallback" : "none",
-      preferencesRelaxed: prefsActive ? preferencesRelaxed : false,
-    };
+    return local;
   }
+}
+
+export function resolveFallbackSubstitutes(
+  ingredientName: string,
+  preferences: DietaryPreferences = createEmptyDietaryPreferences(),
+  findFallback: (name: string) => SubstituteOption[] = findFallbackSubstitutes
+): SubstituteResolution {
+  const prefsActive = hasActiveDietaryPreferences(preferences);
+  const fallback = findFallback(ingredientName);
+  const { options, preferencesRelaxed } = applyDietaryFilter(fallback, preferences);
+  return {
+    substitutes: options,
+    noSubstitute: options.length === 0,
+    source: options.length > 0 ? "fallback" : "none",
+    preferencesRelaxed: prefsActive ? preferencesRelaxed : false,
+  };
 }

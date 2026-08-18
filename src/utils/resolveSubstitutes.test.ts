@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { resolveSubstitutes } from "./resolveSubstitutes";
+import { resolveSubstitutes, resolveFallbackSubstitutes } from "./resolveSubstitutes";
 import { createEmptyDietaryPreferences } from "./dietaryPreferences";
 import type { SubstituteOption } from "../types/dietary";
 
@@ -26,7 +26,6 @@ describe("resolveSubstitutes", () => {
     expect(result.noSubstitute).toBe(false);
     expect(result.preferencesRelaxed).toBe(false);
     expect(result.substitutes.map((s) => s.text)).toEqual(["Greek yogurt", "crème fraîche"]);
-    expect(findFallback).not.toHaveBeenCalled();
   });
 
   it("uses fallback when the API returns empty", async () => {
@@ -54,6 +53,16 @@ describe("resolveSubstitutes", () => {
     expect(result.substitutes[0].text).toBe("melted butter (1:1)");
   });
 
+  it("can resolve from local fallback without waiting on the API", () => {
+    const result = resolveFallbackSubstitutes("Sriracha");
+    expect(result.source).toBe("fallback");
+    expect(result.substitutes[0]?.text).toMatch(/hot sauce/i);
+
+    const oil = resolveFallbackSubstitutes("Canola/Avocado Oil");
+    expect(oil.source).toBe("fallback");
+    expect(oil.substitutes.length).toBeGreaterThan(0);
+  });
+
   it("marks noSubstitute when API and fallback are both empty", async () => {
     const fetchApi = vi.fn().mockResolvedValue([]);
     const findFallback = vi.fn().mockReturnValue([]);
@@ -68,13 +77,14 @@ describe("resolveSubstitutes", () => {
     });
   });
 
-  it("does not call fallback when API returns at least one result", async () => {
+  it("does not prefer fallback when API returns at least one result", async () => {
     const fetchApi = vi.fn().mockResolvedValue(["one option"]);
-    const findFallback = vi.fn();
+    const findFallback = vi.fn().mockReturnValue([opt("fallback only")]);
 
-    await resolveSubstitutes("butter", fetchApi, findFallback);
+    const result = await resolveSubstitutes("butter", fetchApi, findFallback);
 
-    expect(findFallback).not.toHaveBeenCalled();
+    expect(result.source).toBe("api");
+    expect(result.substitutes.map((s) => s.text)).toEqual(["one option"]);
   });
 
   it("filters fallback with AND dietary preferences", async () => {

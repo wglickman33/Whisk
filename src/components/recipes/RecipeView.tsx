@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import type { Recipe, Ingredient } from "../../api/client";
 import { substitutesApi } from "../../api/client";
 import { formatQuantity } from "../../utils/formatQuantity";
-import { resolveSubstitutes } from "../../utils/resolveSubstitutes";
+import { resolveSubstitutes, resolveFallbackSubstitutes } from "../../utils/resolveSubstitutes";
 import { useWakeLock } from "../../hooks/useWakeLock";
 import { useSettingsStore } from "../../store/settingsStore";
 import { hasActiveDietaryPreferences } from "../../utils/dietaryPreferences";
@@ -203,9 +203,21 @@ export function RecipeView({
     const epochAtStart = dietaryEpochRef.current;
     let run!: Promise<void>;
     run = (async () => {
-      setSubLoading((prev) => new Set(prev).add(ingKey));
+      const prefs = useSettingsStore.getState().dietaryPreferences;
+      const local = resolveFallbackSubstitutes(ingName, prefs);
+      if (dietaryEpochRef.current === epochAtStart && local.substitutes.length > 0) {
+        setSubCache((prev) =>
+          new Map(prev).set(ingKey, {
+            substitutes: local.substitutes,
+            index: 0,
+            noSubstitute: local.noSubstitute,
+            preferencesRelaxed: local.preferencesRelaxed,
+          })
+        );
+      } else if (dietaryEpochRef.current === epochAtStart) {
+        setSubLoading((prev) => new Set(prev).add(ingKey));
+      }
       try {
-        const prefs = useSettingsStore.getState().dietaryPreferences;
         const result = await resolveSubstitutes(
           ingName,
           (name, dietary) => substitutesApi.get(name, dietary),
@@ -609,6 +621,11 @@ export function RecipeView({
                       {!subIsLoading && subEntry?.noSubstitute && (
                         <p className="recipe-view__sub-text recipe-view__sub-text--muted">
                           No common substitute - this one&apos;s pretty essential here.
+                        </p>
+                      )}
+                      {!subIsLoading && !subEntry && (
+                        <p className="recipe-view__sub-text recipe-view__sub-text--muted">
+                          Could not load substitutes. Close this and try again.
                         </p>
                       )}
                       {!subIsLoading && subEntry && !subEntry.noSubstitute && (

@@ -3,6 +3,7 @@ import {
   mapDietaryPreferencesToSpoonacular,
   parseDietaryPreferences,
   parseDietaryPreferencesFromQuery,
+  applyDietaryFilter,
   DEFAULT_DIETARY_PREFERENCES,
 } from "./dietaryPreferences.js";
 
@@ -46,5 +47,42 @@ describe("mapDietaryPreferencesToSpoonacular", () => {
       intolerances: "dairy,gluten",
       diet: "vegetarian",
     });
+  });
+});
+
+describe("applyDietaryFilter", () => {
+  const dairyOption = {
+    text: "milk",
+    dairyFree: false,
+    glutenFree: true,
+    nutFree: true,
+    soyFree: true,
+    vegetarian: true,
+    vegan: false,
+  };
+  const oatOption = {
+    text: "oat milk",
+    dairyFree: true,
+    glutenFree: true,
+    nutFree: true,
+    soyFree: true,
+    vegetarian: true,
+    vegan: true,
+  };
+
+  it("keeps matching options and relaxes when none match", () => {
+    expect(
+      applyDietaryFilter([dairyOption, oatOption], {
+        ...DEFAULT_DIETARY_PREFERENCES,
+        dairyFree: true,
+      }).options
+    ).toEqual([oatOption]);
+
+    const relaxed = applyDietaryFilter([dairyOption], {
+      ...DEFAULT_DIETARY_PREFERENCES,
+      dairyFree: true,
+    });
+    expect(relaxed.preferencesRelaxed).toBe(true);
+    expect(relaxed.options).toEqual([dairyOption]);
   });
 });

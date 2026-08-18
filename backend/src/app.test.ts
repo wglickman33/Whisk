@@ -26,4 +26,12 @@ describe("protected API routes", () => {
     expect(res.status).toBe(401);
     expect(res.body.error).toMatch(/authentication/i);
   });
+
+  it("requires auth for sous chat", async () => {
+    const res = await request(app)
+      .post("/api/sous/chat")
+      .send({ messages: [{ role: "user", content: "Hi" }] });
+    expect(res.status).toBe(401);
+    expect(res.body.error).toMatch(/authentication/i);
+  });
 });

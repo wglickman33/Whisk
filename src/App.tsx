@@ -49,6 +49,7 @@ import { ShoppingListPage } from "./pages/ShoppingListPage";
 import { DocsPage } from "./pages/info/DocsPage";
 import { CapabilitiesPage } from "./pages/info/CapabilitiesPage";
 import { SettingsPage } from "./pages/SettingsPage";
+import { SousPage } from "./pages/SousPage";
 import { PrivacyPage } from "./pages/info/PrivacyPage";
 import { HowItWorksPage } from "./pages/info/HowItWorksPage";
 
@@ -131,6 +132,7 @@ export default function App() {
           </Route>
           <Route path="recipes" element={<RecipesPage />} />
           <Route path="shopping-list" element={<ShoppingListPage />} />
+          <Route path="sous" element={<SousPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="docs" element={<DocsPage />} />
           <Route path="capabilities" element={<CapabilitiesPage />} />

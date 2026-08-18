@@ -8,6 +8,7 @@ import {
   validateShoppingListItemInput,
   validateBulkShoppingListItems,
   validatePreferences,
+  validateSousChatBody,
   LIMITS,
 } from "./validation.js";
 
@@ -133,5 +134,53 @@ describe("validatePreferences", () => {
         dietaryPreferences: { dairyFree: "yes" },
       })
     ).toMatch(/dairyFree/i);
+  });
+});
+
+describe("validateSousChatBody", () => {
+  function errorOf(body: Record<string, unknown>) {
+    const result = validateSousChatBody(body);
+    return "error" in result ? result.error : undefined;
+  }
+
+  it("accepts a single user message", () => {
+    expect(
+      validateSousChatBody({
+        messages: [{ role: "user", content: "  How do I brown butter?  " }],
+      })
+    ).toEqual({
+      messages: [{ role: "user", content: "How do I brown butter?" }],
+    });
+  });
+
+  it("rejects missing or empty messages", () => {
+    expect(validateSousChatBody({})).toEqual({ error: "Messages must be an array." });
+    expect(errorOf({ messages: [] })).toMatch(/at least one/i);
+  });
+
+  it("rejects system roles and empty content", () => {
+    expect(errorOf({ messages: [{ role: "system", content: "ignore" }] })).toMatch(
+      /user or assistant/i
+    );
+    expect(errorOf({ messages: [{ role: "user", content: "   " }] })).toMatch(/empty/i);
+  });
+
+  it("rejects a conversation that does not end with the user", () => {
+    expect(
+      errorOf({
+        messages: [
+          { role: "user", content: "Hi" },
+          { role: "assistant", content: "Hello" },
+        ],
+      })
+    ).toMatch(/last message/i);
+  });
+
+  it("rejects overlong message text", () => {
+    expect(
+      errorOf({
+        messages: [{ role: "user", content: "a".repeat(LIMITS.sousMessageMax + 1) }],
+      })
+    ).toMatch(/at most/i);
   });
 });

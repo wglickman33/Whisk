@@ -119,6 +119,17 @@ export function IconShoppingList() {
   );
 }
 
+export function IconSous() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M4 11h16" />
+      <path d="M6 11c0-3.3 2.2-6 6-6s6 2.7 6 6" />
+      <path d="M5 11v2a7 7 0 0 0 14 0v-2" />
+      <path d="M12 19v2" />
+    </svg>
+  );
+}
+
 export function IconShield() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>

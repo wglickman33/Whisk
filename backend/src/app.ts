@@ -9,6 +9,7 @@ import { meRouter } from "./routes/me.js";
 import { foldersRouter } from "./routes/folders.js";
 import { tagsRouter } from "./routes/tags.js";
 import { ingredientsRouter } from "./routes/ingredients.js";
+import { sousRouter } from "./routes/sous.js";
 
 const defaultOrigins = [
   "http://localhost:5173",
@@ -71,6 +72,14 @@ export function createApp() {
     message: { error: "Too many requests. Try again later." },
   });
 
+  const sousLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Too many chat requests. Try again in a minute." },
+  });
+
   app.use("/api/auth", authLimiter, authRouter);
   app.use("/api/recipes", apiLimiter, recipesRouter);
   app.use("/api/shopping-lists", apiLimiter, shoppingListsRouter);
@@ -78,6 +87,7 @@ export function createApp() {
   app.use("/api/folders", apiLimiter, foldersRouter);
   app.use("/api/tags", apiLimiter, tagsRouter);
   app.use("/api/ingredients", apiLimiter, ingredientsRouter);
+  app.use("/api/sous", sousLimiter, sousRouter);
 
   app.get("/api/health", (_req, res) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });

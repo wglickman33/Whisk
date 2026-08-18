@@ -22,6 +22,8 @@ export const LIMITS = {
   shoppingNoteMax: 500,
   folderNameMax: 100,
   tagLabelMax: 50,
+  sousMessageMax: 4000,
+  sousMaxMessages: 40,
 } as const;
 
 const THEMES = new Set(["light", "dark", "auto"]);
@@ -135,4 +137,50 @@ export function validatePreferences(body: Record<string, unknown>): string | nul
     }
   }
   return null;
+}
+
+const SOUS_ROLES = new Set(["user", "assistant"]);
+
+export type SousChatMessage = { role: "user" | "assistant"; content: string };
+
+export function validateSousChatBody(
+  body: Record<string, unknown>
+): { error: string } | { messages: SousChatMessage[] } {
+  if (!Array.isArray(body.messages)) {
+    return { error: "Messages must be an array." };
+  }
+  if (body.messages.length === 0) {
+    return { error: "At least one message is required." };
+  }
+  if (body.messages.length > LIMITS.sousMaxMessages) {
+    return { error: `Too many messages (max ${LIMITS.sousMaxMessages}).` };
+  }
+
+  const messages: SousChatMessage[] = [];
+  for (const item of body.messages) {
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      return { error: "Each message must be an object." };
+    }
+    const raw = item as Record<string, unknown>;
+    if (typeof raw.role !== "string" || !SOUS_ROLES.has(raw.role)) {
+      return { error: "Each message role must be user or assistant." };
+    }
+    if (typeof raw.content !== "string") {
+      return { error: "Each message must include text." };
+    }
+    const content = raw.content.trim();
+    if (!content) {
+      return { error: "Message text cannot be empty." };
+    }
+    if (content.length > LIMITS.sousMessageMax) {
+      return { error: `Message text must be at most ${LIMITS.sousMessageMax} characters.` };
+    }
+    messages.push({ role: raw.role as "user" | "assistant", content });
+  }
+
+  if (messages[messages.length - 1].role !== "user") {
+    return { error: "The last message must come from the user." };
+  }
+
+  return { messages };
 }

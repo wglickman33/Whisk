@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { IconFolder, IconFile, IconWrench } from "../components/ui/AnimatedIcon";
-import { IconRecipe, IconShoppingList } from "../components/ui/SidebarIcons";
+import { IconRecipe, IconShoppingList, IconSous } from "../components/ui/SidebarIcons";
 import { useAuthStore } from "../store/authStore";
 import { useShoppingActivityStore } from "../store/shoppingActivityStore";
 import { SHOPPING_LIST_PATH } from "../utils/shoppingListShare";
@@ -97,6 +97,13 @@ export function Home() {
           </span>
           <h2 className="home-card__title">Recipes</h2>
           <p className="home-card__desc">Save, import, and export recipes. Sign in to sync across devices.</p>
+        </Link>
+        <Link to="/sous" className="home-card">
+          <span className="home-card__icon" aria-hidden>
+            <IconSous />
+          </span>
+          <h2 className="home-card__title">Sous</h2>
+          <p className="home-card__desc">Ask about recipes, substitutions, or your shopping list.</p>
         </Link>
         <Link to={SHOPPING_LIST_PATH} className="home-card">
           <span className="home-card__icon" aria-hidden>

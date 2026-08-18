@@ -9,6 +9,7 @@ import {
   IconDocs,
   IconCapabilities,
   IconShoppingList,
+  IconSous,
   IconSettings,
   IconShield,
   IconInfo,
@@ -22,6 +23,7 @@ const mainNavItems = [
   { to: "/converter", label: "Converter", icon: IconConverter },
   { to: "/tools", label: "Tools", icon: IconTools },
   { to: "/recipes", label: "Recipes", icon: IconRecipe },
+  { to: "/sous", label: "Sous", icon: IconSous },
   { to: "/shopping-list", label: "Shopping list", icon: IconShoppingList, showBadge: true },
   { to: "/settings", label: "Settings", icon: IconSettings },
 ];

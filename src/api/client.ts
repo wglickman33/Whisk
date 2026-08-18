@@ -1,3 +1,5 @@
+import { parseSseBuffer } from "../utils/parseSse";
+
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
 function getToken(): string | null {
@@ -301,9 +303,114 @@ export const substitutesApi = {
         if (value === true) params.set(key, "1");
       }
     }
-    const data = await api<{ substitutes: string[] }>(
-      `/api/ingredients/substitutes?${params.toString()}`
-    );
-    return Array.isArray(data.substitutes) ? data.substitutes : [];
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 6000);
+    try {
+      const data = await api<{ substitutes: string[] }>(
+        `/api/ingredients/substitutes?${params.toString()}`,
+        { signal: controller.signal }
+      );
+      return Array.isArray(data.substitutes) ? data.substitutes : [];
+    } finally {
+      clearTimeout(timeout);
+    }
+  },
+};
+
+export type SousChatMessage = {
+  role: "user" | "assistant";
+  content: string;
+};
+
+export type SousPendingAddToList = {
+  type: "add_to_shopping_list";
+  listId: string;
+  listName: string;
+  items: ShoppingListItemInput[];
+};
+
+export type SousChatResponse = {
+  reply: string;
+  pendingAction?: SousPendingAddToList;
+};
+
+export type SousStreamEvent =
+  | { type: "tool.start"; id: string; name: string; input: unknown }
+  | { type: "tool.result"; id: string; name: string; input: unknown; output: unknown }
+  | { type: "reply"; reply: string; pendingAction?: SousPendingAddToList }
+  | { type: "error"; error: string; status?: number };
+
+export const sousApi = {
+  chat: (messages: SousChatMessage[]) =>
+    api<SousChatResponse>("/api/sous/chat", {
+      method: "POST",
+      body: JSON.stringify({ messages }),
+    }),
+  chatStream: async (
+    messages: SousChatMessage[],
+    onEvent?: (event: SousStreamEvent) => void
+  ): Promise<SousChatResponse> => {
+    const token = getToken();
+    const headers: HeadersInit = {
+      "Content-Type": "application/json",
+      Accept: "text/event-stream",
+    };
+    if (token) headers.Authorization = `Bearer ${token}`;
+
+    const res = await fetch(`${API_URL}/api/sous/chat`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ messages }),
+    });
+
+    const contentType = res.headers.get("content-type") ?? "";
+    if (!contentType.includes("text/event-stream")) {
+      const data = (await res.json().catch(() => ({}))) as SousChatResponse & { error?: string };
+      if (!res.ok) throw new Error(data.error ?? `Request failed: ${res.status}`);
+      if (!data.reply) throw new Error("Sous returned an empty reply. Try again.");
+      onEvent?.({ type: "reply", reply: data.reply, pendingAction: data.pendingAction });
+      return { reply: data.reply, pendingAction: data.pendingAction };
+    }
+
+    if (!res.body) throw new Error("Sous could not reply right now. Try again.");
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let reply = "";
+    let pendingAction: SousPendingAddToList | undefined;
+    let streamError: string | undefined;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const parsed = parseSseBuffer(buffer);
+      buffer = parsed.rest;
+      for (const frame of parsed.events) {
+        let data: Record<string, unknown> = {};
+        try {
+          data = JSON.parse(frame.data) as Record<string, unknown>;
+        } catch {
+          continue;
+        }
+        if (frame.event === "tool.start" || frame.event === "tool.result") {
+          onEvent?.(data as unknown as SousStreamEvent);
+        } else if (frame.event === "reply") {
+          reply = typeof data.reply === "string" ? data.reply : "";
+          pendingAction = data.pendingAction as SousPendingAddToList | undefined;
+          onEvent?.({ type: "reply", reply, pendingAction });
+        } else if (frame.event === "error") {
+          streamError =
+            typeof data.error === "string" && data.error.trim()
+              ? data.error
+              : "Sous could not reply right now. Try again.";
+        }
+      }
+    }
+
+    if (streamError) throw new Error(streamError);
+    if (!reply) throw new Error("Sous returned an empty reply. Try again.");
+    return { reply, pendingAction };
   },
 };

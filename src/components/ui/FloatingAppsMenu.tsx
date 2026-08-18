@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { whiskLogoAmber, toriLogo } from "../../assets/logos";
 import { getToriUrl } from "../../utils/toriUrl";
 import "./FloatingAppsMenu.scss";
@@ -108,7 +109,7 @@ export function FloatingAppsMenu() {
             <div className="floating-apps__panel-brand">
               <img src={whiskLogoAmber} alt="" className="floating-apps__panel-logo" />
               <div>
-                <p className="floating-apps__panel-eyebrow">Coming soon</p>
+                <p className="floating-apps__panel-eyebrow">In Whisk</p>
                 <p className="floating-apps__panel-title">Sous AI</p>
               </div>
             </div>
@@ -117,11 +118,15 @@ export function FloatingAppsMenu() {
             </button>
           </div>
           <p className="floating-apps__panel-body">
-            Your kitchen assistant will live here. Ask about substitutes, scaling, and more.
+            Ask about recipes, substitutions, or your shopping list.
           </p>
-          <button type="button" className="floating-apps__panel-cta" disabled>
-            Agent placeholder
-          </button>
+          <Link
+            className="floating-apps__panel-cta floating-apps__panel-cta--sous"
+            to="/sous"
+            onClick={closeAll}
+          >
+            Open Sous
+          </Link>
         </aside>
       ) : null}
 
@@ -163,7 +168,7 @@ export function FloatingAppsMenu() {
             type="button"
             className="floating-apps__bubble floating-apps__bubble--sous"
             data-tooltip="Sous AI"
-            aria-label="Open Sous AI placeholder"
+            aria-label="Open Sous AI"
             onClick={() => {
               setPanel("sous");
               setOpen(false);
