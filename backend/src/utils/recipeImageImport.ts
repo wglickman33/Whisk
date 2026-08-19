@@ -35,6 +35,7 @@ const RECIPE_IMAGE_PROMPT =
   "If it is a recipe, use {\"isRecipe\":true,\"title\":\"\",\"description\":null,\"servings\":4,\"servingUnit\":\"servings\"," +
   "\"prepTime\":null,\"cookTime\":null,\"ingredients\":[{\"name\":\"\",\"quantity\":1,\"unit\":\"\",\"notes\":null,\"isOptional\":false}]," +
   "\"steps\":[{\"instruction\":\"\",\"timerMinutes\":null}]}. " +
+  "Put every ingredient into ingredients and every direction into steps. Do not stop after the first item. " +
   "Copy quantities from the photos. Do not invent ingredients or steps that are not visible. " +
   "If a field is missing, use null or a sensible default for servings.";
 
@@ -151,13 +152,47 @@ function parseJsonObject(text: string): Record<string, unknown> | null {
   const trimmed = text.trim();
   const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
   const candidate = fenced ? fenced[1].trim() : trimmed;
-  try {
-    const parsed = JSON.parse(candidate) as unknown;
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
-    return parsed as Record<string, unknown>;
-  } catch {
-    return null;
+  const attempts = [candidate];
+  const start = candidate.indexOf("{");
+  const end = candidate.lastIndexOf("}");
+  if (start >= 0 && end > start) attempts.push(candidate.slice(start, end + 1));
+  for (const attempt of attempts) {
+    try {
+      const parsed = JSON.parse(attempt) as unknown;
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        return parsed as Record<string, unknown>;
+      }
+    } catch {
+      /* try the next shape */
+    }
   }
+  return null;
+}
+
+function collectNamedArrays(rec: Record<string, unknown>, names: string[]): unknown[] {
+  const wanted = new Set(names.map((name) => name.toLowerCase()));
+  const out: unknown[] = [];
+  for (const [key, value] of Object.entries(rec)) {
+    if (wanted.has(key.toLowerCase()) && Array.isArray(value)) out.push(...value);
+  }
+  return out;
+}
+
+function ingredientName(row: Record<string, unknown>): string | null {
+  return (
+    sanitizeString(row.name, LIMITS.ingredientNameMax) ??
+    sanitizeString(row.ingredient, LIMITS.ingredientNameMax) ??
+    sanitizeString(row.item, LIMITS.ingredientNameMax)
+  );
+}
+
+function stepInstruction(row: Record<string, unknown>): string | null {
+  return (
+    sanitizeString(row.instruction, LIMITS.instructionMax) ??
+    sanitizeString(row.text, LIMITS.instructionMax) ??
+    sanitizeString(row.step, LIMITS.instructionMax) ??
+    sanitizeString(row.direction, LIMITS.instructionMax)
+  );
 }
 
 export function parseVisionRecipeJson(text: string): RecipeImageParseResult {
@@ -178,8 +213,14 @@ export function parseVisionRecipeJson(text: string): RecipeImageParseResult {
     return { ok: false, status: 422, error: "Could not find a recipe title in those photos." };
   }
 
-  const ingredientsRaw = Array.isArray(rec.ingredients) ? rec.ingredients : [];
-  const stepsRaw = Array.isArray(rec.steps) ? rec.steps : [];
+  const ingredientsRaw = collectNamedArrays(rec, [
+    "ingredients",
+    "ingredientList",
+    "sauce",
+    "sauceIngredients",
+    "stickySauce",
+  ]);
+  const stepsRaw = collectNamedArrays(rec, ["steps", "directions", "instructions"]);
   const ingredients = ingredientsRaw
     .slice(0, LIMITS.maxIngredients)
     .map((item) => {
@@ -191,7 +232,7 @@ export function parseVisionRecipeJson(text: string): RecipeImageParseResult {
       }
       if (!item || typeof item !== "object") return null;
       const row = item as Record<string, unknown>;
-      const name = sanitizeString(row.name, LIMITS.ingredientNameMax);
+      const name = ingredientName(row);
       if (!name) return null;
       return {
         name,
@@ -212,7 +253,7 @@ export function parseVisionRecipeJson(text: string): RecipeImageParseResult {
       }
       if (!item || typeof item !== "object") return null;
       const row = item as Record<string, unknown>;
-      const instruction = sanitizeString(row.instruction, LIMITS.instructionMax);
+      const instruction = stepInstruction(row);
       if (!instruction) return null;
       const mins = typeof row.timerMinutes === "number" ? row.timerMinutes : null;
       return {
@@ -277,6 +318,8 @@ export async function readRecipeFromImages(
       body: JSON.stringify({
         model: options.model ?? GROQ_VISION_MODEL,
         temperature: 0,
+        max_completion_tokens: 2048,
+        reasoning_effort: "none",
         response_format: { type: "json_object" },
         messages: [
           {
@@ -288,24 +331,30 @@ export async function readRecipeFromImages(
       signal: controller.signal,
     });
 
-    if (response.status === 429) {
-      return {
-        ok: false,
-        status: 429,
-        error: "Photo import is busy right now. Try again in a moment.",
-      };
-    }
     if (!response.ok) {
+      let groqMessage = "";
       let groqCode = "";
       try {
         const errBody = (await response.json()) as { error?: { message?: unknown; code?: unknown } };
-        const message = typeof errBody.error?.message === "string" ? errBody.error.message : "";
-        const code = typeof errBody.error?.code === "string" ? errBody.error.code : "";
-        groqCode = [String(response.status), code, message.slice(0, 180)].filter(Boolean).join(" ");
+        groqMessage = typeof errBody.error?.message === "string" ? errBody.error.message : "";
+        groqCode = typeof errBody.error?.code === "string" ? errBody.error.code : "";
+        console.error(
+          "Photo import Groq error:",
+          [String(response.status), groqCode, groqMessage.slice(0, 180)].filter(Boolean).join(" ")
+        );
       } catch {
-        groqCode = String(response.status);
+        console.error("Photo import Groq error:", response.status);
       }
-      console.error("Photo import Groq error:", groqCode);
+      if (response.status === 429 || groqCode === "rate_limit_exceeded") {
+        const tooManyTokens = /token/i.test(groqMessage);
+        return {
+          ok: false,
+          status: 429,
+          error: tooManyTokens
+            ? "Those photos are too large together. Try fewer or closer crops."
+            : "Photo import is busy right now. Try again in a moment.",
+        };
+      }
       return { ok: false, status: 502, error: "Could not read those recipe photos. Try again." };
     }
 

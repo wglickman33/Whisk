@@ -20,7 +20,7 @@ describe("isRecipePhotoFile", () => {
   });
 
   it("keeps a phone-sized max dimension", () => {
-    expect(RECIPE_PHOTO_MAX_SIDE).toBe(1600);
+    expect(RECIPE_PHOTO_MAX_SIDE).toBe(1024);
   });
 
   it("caps a recipe at five photos", () => {

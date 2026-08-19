@@ -80,6 +80,22 @@ describe("parseVisionRecipeJson", () => {
     expect(result.recipe.ingredients[0].name).toBe("flour");
     expect(result.recipe.steps[0].instruction).toBe("mix");
   });
+
+  it("collects sauce ingredients and directions when keys differ", () => {
+    const result = parseVisionRecipeJson(
+      JSON.stringify({
+        isRecipe: true,
+        title: "Schnitzel",
+        ingredients: [{ name: "thin chicken cutlets", quantity: 1.5, unit: "lb" }],
+        stickySauce: [{ item: "honey", quantity: 0.25, unit: "cup" }],
+        directions: [{ text: "Bake until crispy." }],
+      })
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.recipe.ingredients.map((row) => row.name)).toEqual(["thin chicken cutlets", "honey"]);
+    expect(result.recipe.steps[0].instruction).toBe("Bake until crispy.");
+  });
 });
 
 describe("readRecipeFromImages", () => {
@@ -111,14 +127,32 @@ describe("readRecipeFromImages", () => {
     expect(fetchFn.mock.calls[0][0]).toBe(GROQ_CHAT_URL);
     const body = JSON.parse(String(init.body));
     expect(body.model).toBe(GROQ_VISION_MODEL);
+    expect(body.reasoning_effort).toBe("none");
+    expect(body.max_completion_tokens).toBe(2048);
     expect(body.response_format).toEqual({ type: "json_object" });
     expect(body.messages[0].content.filter((part: { type: string }) => part.type === "image_url")).toHaveLength(2);
   });
 
   it("maps Groq 429 to a retryable error", async () => {
-    const fetchFn = vi.fn().mockResolvedValue({ ok: false, status: 429 });
+    const fetchFn = vi.fn().mockResolvedValue({ ok: false, status: 429, json: async () => ({}) });
     const result = await readRecipeFromImages([JPEG_DATA], { apiKey: "key", fetchFn });
     expect(result).toMatchObject({ ok: false, status: 429 });
+  });
+
+  it("asks for fewer photos when Groq rejects the token size", async () => {
+    const fetchFn = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 413,
+      json: async () => ({
+        error: {
+          message: "Request too large for model on tokens per minute (TPM): Limit 8000, Requested 13085",
+          code: "rate_limit_exceeded",
+        },
+      }),
+    });
+    const result = await readRecipeFromImages([JPEG_DATA, JPEG_DATA], { apiKey: "key", fetchFn });
+    expect(result).toMatchObject({ ok: false, status: 429 });
+    if (!result.ok) expect(result.error).toMatch(/too large together/i);
   });
 
   it("maps an unknown Groq model to 502", async () => {

@@ -1,7 +1,7 @@
 import { validateImageForTools } from "./fileSecurity";
 import { loadImageElement, canvasToBlob } from "./tools/imageCanvas";
 
-export const RECIPE_PHOTO_MAX_SIDE = 1600;
+export const RECIPE_PHOTO_MAX_SIDE = 1024;
 export const RECIPE_PHOTO_MAX_BYTES = 1_200_000;
 export const RECIPE_PHOTO_MAX_COUNT = 5;
 const ACCEPTED = new Set(["png", "jpg", "jpeg", "webp", "gif", "heic", "heif", "bmp"]);
