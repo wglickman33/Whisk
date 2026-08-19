@@ -1,7 +1,7 @@
 import { GROQ_CHAT_URL, parseGroqChatPayload } from "./groqChat.js";
 import { LIMITS, sanitizeString } from "./validation.js";
 
-export const GROQ_VISION_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
+export const GROQ_VISION_MODEL = "qwen/qwen3.6-27b";
 export const RECIPE_IMAGE_MAX_BYTES = 1_500_000;
 export const RECIPE_IMAGE_MAX_COUNT = 5;
 export const RECIPE_IMAGE_MAX_TOTAL_BYTES = 5_000_000;
@@ -296,6 +296,16 @@ export async function readRecipeFromImages(
       };
     }
     if (!response.ok) {
+      let groqCode = "";
+      try {
+        const errBody = (await response.json()) as { error?: { message?: unknown; code?: unknown } };
+        const message = typeof errBody.error?.message === "string" ? errBody.error.message : "";
+        const code = typeof errBody.error?.code === "string" ? errBody.error.code : "";
+        groqCode = [String(response.status), code, message.slice(0, 180)].filter(Boolean).join(" ");
+      } catch {
+        groqCode = String(response.status);
+      }
+      console.error("Photo import Groq error:", groqCode);
       return { ok: false, status: 502, error: "Could not read those recipe photos. Try again." };
     }
 

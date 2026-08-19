@@ -120,4 +120,16 @@ describe("readRecipeFromImages", () => {
     const result = await readRecipeFromImages([JPEG_DATA], { apiKey: "key", fetchFn });
     expect(result).toMatchObject({ ok: false, status: 429 });
   });
+
+  it("maps an unknown Groq model to 502", async () => {
+    const fetchFn = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      json: async () => ({
+        error: { message: "The model does not exist or you do not have access to it.", code: "model_not_found" },
+      }),
+    });
+    const result = await readRecipeFromImages([JPEG_DATA], { apiKey: "key", fetchFn });
+    expect(result).toMatchObject({ ok: false, status: 502 });
+  });
 });
