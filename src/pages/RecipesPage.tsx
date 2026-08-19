@@ -20,6 +20,15 @@ import { scaledIngredientToListItem } from "../utils/shoppingListUtils";
 import { bulkAddToList, resolveAddTarget } from "../utils/shoppingListActions";
 import { SHOPPING_LIST_PATH } from "../utils/shoppingListShare";
 import { importRecipeFromFile } from "../utils/recipeTransfer";
+import {
+  isRecipePhotoFile,
+  recipePhotoToDataUrl,
+  recipePhotoMaxBytesForCount,
+  prepareRecipePhotoFile,
+  reorderRecipePhotos,
+  RECIPE_PHOTO_MAX_COUNT,
+} from "../utils/recipeImage";
+import { RecipePhotoStaging, type StagedRecipePhoto } from "../components/recipes/RecipePhotoStaging";
 import { findDuplicateItemNames, filterNonDuplicateItems } from "../utils/shoppingListDedupe";
 import { DuplicateItemsModal } from "../components/shopping/DuplicateItemsModal";
 import { ListPickerModal } from "../components/shopping/ListPickerModal";
@@ -41,9 +50,14 @@ export function RecipesPage() {
   const [importUrl, setImportUrl] = useState("");
   const [importing, setImporting] = useState(false);
   const [importingFile, setImportingFile] = useState(false);
+  const [importingPhoto, setImportingPhoto] = useState(false);
+  const [stagedPhotos, setStagedPhotos] = useState<StagedRecipePhoto[]>([]);
+  const stagedPhotosRef = useRef<StagedRecipePhoto[]>([]);
   const importFileRef = useRef<HTMLInputElement>(null);
+  const importPhotoRef = useRef<HTMLInputElement>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [importDraft, setImportDraft] = useState<RecipeInput | null>(null);
   const [viewingId, setViewingId] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [folderModalOpen, setFolderModalOpen] = useState(false);
@@ -84,6 +98,16 @@ export function RecipesPage() {
   useEffect(() => {
     fetchRecipes();
   }, [fetchRecipes]);
+
+  useEffect(() => {
+    stagedPhotosRef.current = stagedPhotos;
+  }, [stagedPhotos]);
+
+  useEffect(() => {
+    return () => {
+      stagedPhotosRef.current.forEach((photo) => URL.revokeObjectURL(photo.previewUrl));
+    };
+  }, []);
 
   const visibleRecipes = useMemo(
     () => filterRecipes(recipes, search, folderFilter || null),
@@ -179,6 +203,73 @@ export function RecipesPage() {
     }
   };
 
+  const clearStagedPhotos = useCallback(() => {
+    setStagedPhotos((prev) => {
+      prev.forEach((photo) => URL.revokeObjectURL(photo.previewUrl));
+      return [];
+    });
+  }, []);
+
+  const handleStagePhotos = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = [...(e.target.files ?? [])];
+    e.target.value = "";
+    if (files.length === 0) return;
+    const remaining = RECIPE_PHOTO_MAX_COUNT - stagedPhotos.length;
+    if (remaining <= 0) {
+      toastError(`Use up to ${RECIPE_PHOTO_MAX_COUNT} photos for one recipe.`);
+      return;
+    }
+    const selected = files.slice(0, remaining);
+    if (files.length > remaining) {
+      toastError(`Use up to ${RECIPE_PHOTO_MAX_COUNT} photos for one recipe.`);
+    }
+    if (selected.some((file) => !isRecipePhotoFile(file))) {
+      toastError("Use JPEG, PNG, WebP, or HEIC photos.");
+      return;
+    }
+    try {
+      const added: StagedRecipePhoto[] = [];
+      for (const file of selected) {
+        const prepared = await prepareRecipePhotoFile(file);
+        added.push({
+          id: globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`,
+          file: prepared,
+          previewUrl: URL.createObjectURL(prepared),
+        });
+      }
+      setStagedPhotos((prev) => {
+        const room = RECIPE_PHOTO_MAX_COUNT - prev.length;
+        const keep = added.slice(0, room);
+        added.slice(room).forEach((photo) => URL.revokeObjectURL(photo.previewUrl));
+        return [...prev, ...keep];
+      });
+    } catch (err) {
+      toastError(err instanceof Error ? err.message : "Could not add those photos.");
+    }
+  };
+
+  const handleReadStagedPhotos = async () => {
+    if (stagedPhotos.length === 0 || importingPhoto) return;
+    setImportingPhoto(true);
+    try {
+      const maxBytes = recipePhotoMaxBytesForCount(stagedPhotos.length);
+      const images: string[] = [];
+      for (const photo of stagedPhotos) {
+        images.push(await recipePhotoToDataUrl(photo.file, { maxBytes }));
+      }
+      const { recipe } = await recipesApi.importImage(images);
+      clearStagedPhotos();
+      setEditingId(null);
+      setImportDraft(recipe);
+      setFormOpen(true);
+      toastSuccess("Check the details, then save.");
+    } catch (err) {
+      toastError(err instanceof Error ? err.message : "Could not read those recipe photos.");
+    } finally {
+      setImportingPhoto(false);
+    }
+  };
+
   const handleCreateFolder = async (e: React.FormEvent) => {
     e.preventDefault();
     const name = folderName.trim();
@@ -239,6 +330,7 @@ export function RecipesPage() {
           className="recipes-page__new"
           onClick={() => {
             setEditingId(null);
+            setImportDraft(null);
             setFormOpen(true);
           }}
         >
@@ -299,12 +391,50 @@ export function RecipesPage() {
             type="button"
             className="recipes-page__import-file-btn"
             onClick={() => importFileRef.current?.click()}
-            disabled={importingFile}
+            disabled={importingFile || importingPhoto}
           >
             {importingFile ? "Importing…" : "Import file"}
           </button>
         </div>
+        <div className="recipes-page__import-file">
+          <input
+            ref={importPhotoRef}
+            type="file"
+            multiple
+            accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.gif,.heic,.heif"
+            className="recipes-page__import-file-input"
+            onChange={(e) => void handleStagePhotos(e)}
+            aria-label="Add recipe photos"
+          />
+          <button
+            type="button"
+            className="recipes-page__import-file-btn"
+            onClick={() => importPhotoRef.current?.click()}
+            disabled={importingPhoto || importingFile || stagedPhotos.length >= RECIPE_PHOTO_MAX_COUNT}
+            title="Select up to 5 screenshots in page order"
+          >
+            {stagedPhotos.length > 0 ? "Add photos" : "Import photos"}
+          </button>
+        </div>
       </div>
+
+      {stagedPhotos.length > 0 && (
+        <RecipePhotoStaging
+          photos={stagedPhotos}
+          importing={importingPhoto}
+          onMove={(from, to) => setStagedPhotos((prev) => reorderRecipePhotos(prev, from, to))}
+          onRemove={(id) => {
+            setStagedPhotos((prev) => {
+              const removed = prev.find((photo) => photo.id === id);
+              if (removed) URL.revokeObjectURL(removed.previewUrl);
+              return prev.filter((photo) => photo.id !== id);
+            });
+          }}
+          onAdd={() => importPhotoRef.current?.click()}
+          onCancel={clearStagedPhotos}
+          onRead={() => void handleReadStagedPhotos()}
+        />
+      )}
 
       <div className="recipes-page__body">
         {loading && <p className="recipes-page__loading">Loading recipes…</p>}
@@ -312,7 +442,7 @@ export function RecipesPage() {
         {!loading && visibleRecipes.length === 0 && !formOpen && (
           <p className="recipes-page__empty">
             {recipes.length === 0
-              ? 'No recipes yet. Click "New Recipe", import from a URL, or import a Whisk file.'
+              ? 'No recipes yet. Click "New Recipe", import a URL, a Whisk file, or photos.'
               : "No recipes match your search."}
           </p>
         )}
@@ -358,6 +488,7 @@ export function RecipesPage() {
                     type="button"
                     className="recipes-page__card-btn"
                     onClick={() => {
+                      setImportDraft(null);
                       setEditingId(r.id);
                       setFormOpen(true);
                     }}
@@ -377,16 +508,19 @@ export function RecipesPage() {
       {formOpen && (
         <RecipeForm
           recipe={editingId ? recipes.find((r) => r.id === editingId) ?? null : null}
+          draft={editingId ? null : importDraft}
           folders={folders}
           allTags={allTags}
           onClose={() => {
             setFormOpen(false);
             setEditingId(null);
+            setImportDraft(null);
           }}
           onTagsChanged={setAllTags}
           onSaved={(recipe, isUpdate) => {
             setFormOpen(false);
             setEditingId(null);
+            setImportDraft(null);
             toastSuccess(isUpdate ? "Recipe updated." : "Recipe saved.");
             setRecipes((prev) => {
               const idx = prev.findIndex((r) => r.id === recipe.id);
@@ -410,6 +544,7 @@ export function RecipesPage() {
             onClose={() => setViewingId(null)}
             onEdit={() => {
               setViewingId(null);
+              setImportDraft(null);
               setEditingId(recipe.id);
               setFormOpen(true);
             }}
@@ -580,6 +715,7 @@ export function RecipesPage() {
 
 interface RecipeFormProps {
   recipe: Recipe | null;
+  draft?: RecipeInput | null;
   folders: FolderSummary[];
   allTags: Tag[];
   onClose: () => void;
@@ -587,11 +723,11 @@ interface RecipeFormProps {
   onTagsChanged: (tags: Tag[]) => void;
 }
 
-function RecipeForm({ recipe, folders, allTags, onClose, onSaved, onTagsChanged }: RecipeFormProps) {
-  const [title, setTitle] = useState(recipe?.title ?? "");
-  const [description, setDescription] = useState(recipe?.description ?? "");
-  const [servings, setServings] = useState(recipe?.servings ?? 4);
-  const [servingUnit, setServingUnit] = useState(recipe?.servingUnit ?? "Servings");
+function RecipeForm({ recipe, draft, folders, allTags, onClose, onSaved, onTagsChanged }: RecipeFormProps) {
+  const [title, setTitle] = useState(recipe?.title ?? draft?.title ?? "");
+  const [description, setDescription] = useState(recipe?.description ?? draft?.description ?? "");
+  const [servings, setServings] = useState(recipe?.servings ?? draft?.servings ?? 4);
+  const [servingUnit, setServingUnit] = useState(recipe?.servingUnit ?? draft?.servingUnit ?? "Servings");
   const [folderId, setFolderId] = useState(recipe?.folderId ?? recipe?.folder?.id ?? "");
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>(
     recipe?.tags?.map((t) => t.tag.id) ?? []
@@ -605,12 +741,25 @@ function RecipeForm({ recipe, folders, allTags, onClose, onSaved, onTagsChanged 
           notes: i.notes ?? "",
           isOptional: i.isOptional,
         }))
-      : [{ name: "", quantity: 0, unit: "", notes: "", isOptional: false }]
+      : draft?.ingredients?.length
+        ? draft.ingredients.map((i) => ({
+            name: i.name,
+            quantity: i.quantity ?? 0,
+            unit: i.unit ?? "",
+            notes: i.notes ?? "",
+            isOptional: Boolean(i.isOptional),
+          }))
+        : [{ name: "", quantity: 0, unit: "", notes: "", isOptional: false }]
   );
   const [steps, setSteps] = useState(
     recipe?.steps.length
       ? recipe.steps.map((s) => ({ instruction: s.instruction, timerMinutes: s.timerMinutes }))
-      : [{ instruction: "", timerMinutes: null as number | null }]
+      : draft?.steps?.length
+        ? draft.steps.map((s) => ({
+            instruction: s.instruction,
+            timerMinutes: s.timerMinutes ?? null,
+          }))
+        : [{ instruction: "", timerMinutes: null as number | null }]
   );
   const [saving, setSaving] = useState(false);
   const [tagModalOpen, setTagModalOpen] = useState(false);
@@ -713,7 +862,9 @@ function RecipeForm({ recipe, folders, allTags, onClose, onSaved, onTagsChanged 
     >
       <div className="recipes-form" onClick={(e) => e.stopPropagation()}>
         <div className="recipes-form__header">
-          <h2 id="recipe-form-title">{recipe ? "Edit Recipe" : "New Recipe"}</h2>
+          <h2 id="recipe-form-title">
+            {recipe ? "Edit Recipe" : draft ? "Review imported recipe" : "New Recipe"}
+          </h2>
           <button type="button" className="recipes-form__close" onClick={onClose} aria-label="Close">
             <span className="recipes-form__close-icon" aria-hidden>&times;</span>
           </button>

@@ -155,6 +155,11 @@ export const recipesApi = {
       method: "POST",
       body: JSON.stringify({ url }),
     }),
+  importImage: (images: string[]) =>
+    api<{ recipe: RecipeInput }>("/api/recipes/import-image", {
+      method: "POST",
+      body: JSON.stringify({ images }),
+    }),
 };
 
 export interface ShoppingListMember {

@@ -45,6 +45,11 @@ export function PrivacyPage() {
           Recipe URL import sends the URL (not your local files) to our API so we can fetch and parse the page.
         </p>
         <p>
+          Recipe photo import sends one or more photos to Groq so it can read the ingredients and steps into a
+          single recipe. Photos are not stored. Nothing is saved to your recipes until you review and tap Save.
+          Sous AI chat also uses Groq.
+        </p>
+        <p>
           When you use a shared shopping list, Whisk opens a live connection (Server-Sent Events) to our API so
           changes from other members appear in real time. This is only used for list sync - not for analytics or
           advertising.

@@ -8,6 +8,7 @@ import {
   LIMITS,
 } from "../utils/validation.js";
 import { fetchAndScrapeRecipe } from "../utils/recipeScraper.js";
+import { parseRecipeImageBody, readRecipeFromImages } from "../utils/recipeImageImport.js";
 import { UrlSafetyError } from "../utils/urlSafety.js";
 
 const router = Router();
@@ -86,6 +87,35 @@ router.post("/import-url", async (req: AuthRequest, res) => {
     }
     console.error(err);
     res.status(500).json({ error: "Import failed." });
+  }
+});
+
+router.post("/import-image", async (req: AuthRequest, res) => {
+  const apiKey = process.env.GROQ_API_KEY?.trim();
+  if (!apiKey) {
+    res.status(503).json({ error: "Photo import is not configured yet." });
+    return;
+  }
+
+  const parsed = parseRecipeImageBody((req.body ?? {}) as Record<string, unknown>);
+  if ("error" in parsed) {
+    res.status(400).json({ error: parsed.error });
+    return;
+  }
+
+  try {
+    const result = await readRecipeFromImages(parsed.dataUrls, {
+      apiKey,
+      timeoutMs: process.env.NODE_ENV === "production" ? 25_000 : 60_000,
+    });
+    if (!result.ok) {
+      res.status(result.status).json({ error: result.error });
+      return;
+    }
+    res.json({ recipe: result.recipe });
+  } catch (err) {
+    console.error(err);
+    res.status(502).json({ error: "Could not read those recipe photos. Try again." });
   }
 });
 
