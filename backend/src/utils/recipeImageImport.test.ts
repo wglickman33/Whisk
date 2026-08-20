@@ -60,15 +60,22 @@ describe("parseVisionRecipeJson", () => {
     expect(result.recipe.title).toBe("Firecracker Salmon");
     expect(result.recipe.description).toContain("Spicy glaze");
     expect(result.recipe.servingUnit).toBe("Servings");
-    expect(result.recipe.tagLabels).toEqual([]);
+    expect(result.recipe.tagLabels).toEqual(["Fish", "Spicy"]);
+    expect(result.recipe.ingredients).toHaveLength(2);
     expect(result.recipe.ingredients[1].quantity).toBe(0.5);
+    expect(result.recipe.steps).toHaveLength(1);
     expect(result.recipe.steps[0].timerMinutes).toBe(18);
   });
 
-  it("rejects non-recipes and empty extractions", () => {
+  it("rejects non-recipes and incomplete extractions", () => {
     expect(parseVisionRecipeJson('{"isRecipe":false}').ok).toBe(false);
     expect(
       parseVisionRecipeJson(JSON.stringify({ isRecipe: true, title: "Soup", ingredients: [], steps: [] }))
+    ).toMatchObject({ status: 422 });
+    expect(
+      parseVisionRecipeJson(
+        JSON.stringify({ isRecipe: true, title: "Soup", ingredients: ["stock"], steps: [] })
+      )
     ).toMatchObject({ status: 422 });
     expect(parseVisionRecipeJson("not json").ok).toBe(false);
   });
@@ -81,6 +88,8 @@ describe("parseVisionRecipeJson", () => {
     if (!result.ok) return;
     expect(result.recipe.ingredients[0].name).toBe("flour");
     expect(result.recipe.steps[0].instruction).toBe("mix");
+    expect(result.recipe.description).toMatch(/Pancakes/i);
+    expect(result.recipe.tagLabels.length).toBeGreaterThanOrEqual(2);
   });
 
   it("collects sauce ingredients and directions when keys differ", () => {
@@ -117,6 +126,51 @@ describe("parseVisionRecipeJson", () => {
     expect(result.recipe.description).toContain("Crispy baked chicken");
     expect(result.recipe.tagLabels).toEqual(["savory", "Chicken"]);
   });
+
+  it("fills name, description, and tags when Groq omits them", () => {
+    const result = parseVisionRecipeJson(
+      JSON.stringify({
+        isRecipe: true,
+        ingredients: [{ name: "salmon", quantity: 1, unit: "lb" }, { name: "lemon" }],
+        steps: ["Roast until flaky."],
+      })
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.recipe.title).toBe("salmon");
+    expect(result.recipe.description).toMatch(/salmon/i);
+    expect(result.recipe.tagLabels.length).toBeGreaterThanOrEqual(2);
+    expect(result.recipe.tagLabels).toContain("Fish");
+    expect(result.recipe.ingredients).toHaveLength(2);
+    expect(result.recipe.steps).toHaveLength(1);
+  });
+
+  it("reads a nested recipe object and grouped ingredient lists", () => {
+    const result = parseVisionRecipeJson(
+      JSON.stringify({
+        isRecipe: true,
+        recipe: {
+          name: "Lazy Girl Saucy Schnitzel",
+          ingredients: {
+            chicken: [{ item: "thin chicken cutlets", quantity: 1.5, unit: "lb" }],
+            sauce: "1/4 cup honey\n2 tbsp chili sauce",
+          },
+          method: ["Bake until crispy.", "Toss with sauce."],
+        },
+      })
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.recipe.title).toBe("Lazy Girl Saucy Schnitzel");
+    expect(result.recipe.description).toBeTruthy();
+    expect(result.recipe.tagLabels.length).toBeGreaterThanOrEqual(2);
+    expect(result.recipe.ingredients.map((row) => row.name)).toEqual([
+      "thin chicken cutlets",
+      "1/4 cup honey",
+      "2 tbsp chili sauce",
+    ]);
+    expect(result.recipe.steps).toHaveLength(2);
+  });
 });
 
 describe("readRecipeFromImages", () => {
@@ -149,7 +203,7 @@ describe("readRecipeFromImages", () => {
     const body = JSON.parse(String(init.body));
     expect(body.model).toBe(GROQ_VISION_MODEL);
     expect(body.reasoning_effort).toBe("none");
-    expect(body.max_completion_tokens).toBe(2048);
+    expect(body.max_completion_tokens).toBe(3072);
     expect(body.response_format).toEqual({ type: "json_object" });
     expect(body.messages[0].content.filter((part: { type: string }) => part.type === "image_url")).toHaveLength(2);
   });

@@ -22,6 +22,7 @@ import { SHOPPING_LIST_PATH } from "../utils/shoppingListShare";
 import { importRecipeFromFile } from "../utils/recipeTransfer";
 import {
   isRecipePhotoFile,
+  isCompleteRecipeImport,
   recipePhotoToDataUrl,
   recipePhotoMaxBytesForCount,
   prepareRecipePhotoFile,
@@ -259,6 +260,10 @@ export function RecipesPage() {
         images.push(await recipePhotoToDataUrl(photo.file, { maxBytes }));
       }
       const { recipe } = await recipesApi.importImage(images);
+      if (!isCompleteRecipeImport(recipe)) {
+        toastError("Could not read a full recipe from those photos. Try a clearer shot of the name, list, and steps.");
+        return;
+      }
       clearStagedPhotos();
       setEditingId(null);
       setImportDraft(recipe);

@@ -32,6 +32,23 @@ function blobToDataUrl(blob: Blob): Promise<string> {
   });
 }
 
+export function isCompleteRecipeImport(recipe: {
+  title?: string | null;
+  description?: string | null;
+  tagLabels?: string[];
+  ingredients?: { name?: string | null }[];
+  steps?: { instruction?: string | null }[];
+}): boolean {
+  return Boolean(
+    recipe.title?.trim() &&
+      recipe.description?.trim() &&
+      recipe.tagLabels &&
+      recipe.tagLabels.some((label) => label.trim()) &&
+      recipe.ingredients?.some((item) => item.name?.trim()) &&
+      recipe.steps?.some((step) => step.instruction?.trim())
+  );
+}
+
 export function recipePhotoMaxBytesForCount(count: number): number {
   const n = Math.max(1, Math.min(count, RECIPE_PHOTO_MAX_COUNT));
   return Math.min(RECIPE_PHOTO_MAX_BYTES, Math.floor(4_500_000 / n));

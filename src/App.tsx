@@ -52,6 +52,7 @@ import { SettingsPage } from "./pages/SettingsPage";
 import { SousPage } from "./pages/SousPage";
 import { PrivacyPage } from "./pages/info/PrivacyPage";
 import { HowItWorksPage } from "./pages/info/HowItWorksPage";
+import { NotFoundPage } from "./pages/NotFoundPage";
 
 function PasswordResetFromUrl() {
   const openResetModal = useAuthModalStore((s) => s.openResetModal);
@@ -139,6 +140,7 @@ export default function App() {
           <Route path="privacy" element={<PrivacyPage />} />
           <Route path="how-it-works" element={<HowItWorksPage />} />
         </Route>
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>
   );

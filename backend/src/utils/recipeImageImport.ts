@@ -33,15 +33,58 @@ const RECIPE_IMAGE_PROMPT =
   "Read the recipe in these photos. They are pages of the same recipe, in order from first to last. " +
   "Combine them into one recipe. Merge overlapping lines. Reply with JSON only. " +
   "If none of the photos is a recipe, use {\"isRecipe\":false}. " +
-  "If it is a recipe, use {\"isRecipe\":true,\"title\":\"\",\"description\":\"\",\"servings\":4,\"servingUnit\":\"Servings\"," +
-  "\"prepTime\":null,\"cookTime\":null,\"tags\":[\"Savory\"]," +
-  "\"ingredients\":[{\"name\":\"\",\"quantity\":1,\"unit\":\"\",\"notes\":null,\"isOptional\":false}]," +
-  "\"steps\":[{\"instruction\":\"\",\"timerMinutes\":null}]}. " +
-  "Put every ingredient into ingredients and every direction into steps. Do not stop after the first item. " +
-  "Write one short description sentence from what is visible. " +
-  "Add 2 to 4 short tags. Prefer labels like Savory, Sweet, Spicy, Vegetarian, Fish, Chicken, Beef, Dessert, or Dinner. " +
+  "If it is a recipe, fill every required field. Never omit title, description, tags, ingredients, or steps. " +
+  "Never use empty strings or empty arrays for those fields. " +
+  "Required JSON: {\"isRecipe\":true,\"title\":\"Dish name\",\"description\":\"One short sentence.\",\"servings\":4,\"servingUnit\":\"Servings\"," +
+  "\"prepTime\":null,\"cookTime\":null,\"tags\":[\"Savory\",\"Dinner\"]," +
+  "\"ingredients\":[{\"name\":\"flour\",\"quantity\":2,\"unit\":\"cups\",\"notes\":null,\"isOptional\":false}]," +
+  "\"steps\":[{\"instruction\":\"Mix until smooth.\",\"timerMinutes\":null}]}. " +
+  "title: the dish name. If the photos have no name, name it from the main ingredients. " +
+  "description: always one short sentence from what is visible (what it is, flavor, or method). " +
+  "tags: always 2 to 4 short labels. Prefer Savory, Sweet, Spicy, Vegetarian, Fish, Chicken, Beef, Dessert, or Dinner. " +
+  "ingredients: every ingredient from every page, including sauces, marinades, toppings, and garnishes. Do not stop after the first item. " +
+  "steps: every direction from every page, in order. Do not stop after the first step. " +
   "Copy quantities from the photos. Do not invent ingredients or steps that are not visible. " +
-  "If a field is missing, use null or a sensible default for servings.";
+  "servings may default to 4 if missing. servingUnit must be Servings unless the photos say otherwise.";
+
+const INGREDIENT_KEYS = [
+  "ingredients",
+  "ingredientList",
+  "ingredient_list",
+  "sauce",
+  "sauceIngredients",
+  "stickySauce",
+  "marinade",
+  "rub",
+  "topping",
+  "toppings",
+  "filling",
+  "garnish",
+  "dressing",
+];
+
+const STEP_KEYS = [
+  "steps",
+  "directions",
+  "instructions",
+  "method",
+  "procedure",
+  "howTo",
+  "how_to",
+  "preparation",
+];
+
+const TAG_HINTS: { label: string; test: RegExp }[] = [
+  { label: "Chicken", test: /\bchickens?\b|\bschnitzel\b|\bcutlets?\b/i },
+  { label: "Beef", test: /\bbeef\b|\bsteak\b|\bbrisket\b/i },
+  { label: "Fish", test: /\bfish\b|\bsalmon\b|\btuna\b|\bcod\b|\bshrimp\b|\bprawns?\b|\bseafood\b/i },
+  { label: "Vegetarian", test: /\bvegetarian\b|\bvegan\b|\btofu\b|\blentils?\b|\bchickpeas?\b/i },
+  { label: "Dessert", test: /\bdessert\b|\bcake\b|\bcookies?\b|\bbrownies?\b|\bpancakes?\b|\bwaffles?\b|\bice cream\b/i },
+  { label: "Spicy", test: /\bspicy\b|\bchili\b|\bchilli\b|\bsriracha\b|\bcayenne\b|\bjalape/i },
+  { label: "Sweet", test: /\bsweet\b|\bhoney\b|\bchocolate\b|\bmaple\b|\bsugar\b/i },
+  { label: "Dinner", test: /\bdinner\b|\broast\b|\bbake\b|\bsupper\b/i },
+  { label: "Savory", test: /\bsavory\b|\bsavoury\b|\bgarlic\b|\bonion\b|\bsalt\b/i },
+];
 
 function looksLikeJpeg(bytes: Uint8Array): boolean {
   return bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
@@ -173,43 +216,61 @@ function parseJsonObject(text: string): Record<string, unknown> | null {
   return null;
 }
 
-function collectNamedArrays(rec: Record<string, unknown>, names: string[]): unknown[] {
+function optionalText(value: unknown, maxLen: number): string | null {
+  const text = sanitizeString(value, maxLen);
+  return text ? text : null;
+}
+
+function unwrapRecipeRecord(rec: Record<string, unknown>): Record<string, unknown> {
+  const nested = rec.recipe;
+  if (nested && typeof nested === "object" && !Array.isArray(nested)) {
+    return { ...rec, ...(nested as Record<string, unknown>) };
+  }
+  return rec;
+}
+
+function splitListText(text: string): string[] {
+  const lines = text
+    .split(/\r?\n+|•/g)
+    .map((line) => line.replace(/^\s*(?:[-*]|\d+[.)])\s*/, "").trim())
+    .filter(Boolean);
+  return lines.length > 0 ? lines : [];
+}
+
+function valuesAsList(value: unknown): unknown[] {
+  if (Array.isArray(value)) return value;
+  if (typeof value === "string") return splitListText(value);
+  if (value && typeof value === "object") {
+    const nested: unknown[] = [];
+    for (const child of Object.values(value as Record<string, unknown>)) {
+      if (Array.isArray(child)) nested.push(...child);
+      else if (typeof child === "string" && child.trim()) nested.push(...splitListText(child));
+    }
+    return nested;
+  }
+  return [];
+}
+
+function collectNamedLists(rec: Record<string, unknown>, names: string[]): unknown[] {
   const wanted = new Set(names.map((name) => name.toLowerCase()));
   const out: unknown[] = [];
   for (const [key, value] of Object.entries(rec)) {
-    if (wanted.has(key.toLowerCase()) && Array.isArray(value)) out.push(...value);
+    if (!wanted.has(key.toLowerCase())) continue;
+    out.push(...valuesAsList(value));
   }
   return out;
 }
 
-function ingredientName(row: Record<string, unknown>): string | null {
-  return (
-    sanitizeString(row.name, LIMITS.ingredientNameMax) ??
-    sanitizeString(row.ingredient, LIMITS.ingredientNameMax) ??
-    sanitizeString(row.item, LIMITS.ingredientNameMax)
-  );
-}
-
-function stepInstruction(row: Record<string, unknown>): string | null {
-  return (
-    sanitizeString(row.instruction, LIMITS.instructionMax) ??
-    sanitizeString(row.text, LIMITS.instructionMax) ??
-    sanitizeString(row.step, LIMITS.instructionMax) ??
-    sanitizeString(row.direction, LIMITS.instructionMax)
-  );
-}
-
-function formatServingUnit(value: unknown): string {
-  const unit = sanitizeString(value, 40) || "Servings";
-  return unit.toLowerCase() === "servings" ? "Servings" : unit;
-}
-
 function parseTagLabels(raw: unknown): string[] {
-  if (!Array.isArray(raw)) return [];
+  const items = Array.isArray(raw)
+    ? raw
+    : typeof raw === "string"
+      ? raw.split(/[,/|&]+/)
+      : [];
   const seen = new Set<string>();
   const labels: string[] = [];
-  for (const item of raw.slice(0, 6)) {
-    const label = sanitizeString(item, LIMITS.tagLabelMax);
+  for (const item of items.slice(0, 6)) {
+    const label = optionalText(item, LIMITS.tagLabelMax);
     if (!label) continue;
     const key = label.toLowerCase();
     if (seen.has(key)) continue;
@@ -219,11 +280,82 @@ function parseTagLabels(raw: unknown): string[] {
   return labels;
 }
 
+function inferTagLabels(text: string): string[] {
+  const labels: string[] = [];
+  const seen = new Set<string>();
+  for (const hint of TAG_HINTS) {
+    if (!hint.test.test(text)) continue;
+    const key = hint.label.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    labels.push(hint.label);
+    if (labels.length >= 4) break;
+  }
+  if (!seen.has("savory") && !seen.has("sweet") && !seen.has("dessert")) {
+    labels.push("Savory");
+  }
+  return labels.slice(0, 4);
+}
+
+function completeTagLabels(parsed: string[], text: string): string[] {
+  const labels = [...parsed];
+  const seen = new Set(labels.map((label) => label.toLowerCase()));
+  if (labels.length >= 2) return labels.slice(0, 4);
+  for (const extra of inferTagLabels(text)) {
+    const key = extra.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    labels.push(extra);
+    if (labels.length >= 2) break;
+  }
+  if (labels.length === 0) labels.push("Savory");
+  if (labels.length === 1) {
+    const only = labels[0].toLowerCase();
+    if (only === "dessert") labels.push("Sweet");
+    else if (only === "sweet") labels.push("Dessert");
+    else if (only !== "savory") labels.push("Savory");
+    else labels.push("Dinner");
+  }
+  return labels.slice(0, 4);
+}
+
+function fallbackDescription(title: string, ingredientNames: string[]): string {
+  const names = ingredientNames.filter(Boolean).slice(0, 3);
+  if (names.length >= 2) {
+    return `${title} with ${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}.`;
+  }
+  if (names.length === 1) return `${title} with ${names[0]}.`;
+  return `A recipe for ${title}.`;
+}
+
+function ingredientName(row: Record<string, unknown>): string | null {
+  return (
+    optionalText(row.name, LIMITS.ingredientNameMax) ??
+    optionalText(row.ingredient, LIMITS.ingredientNameMax) ??
+    optionalText(row.item, LIMITS.ingredientNameMax)
+  );
+}
+
+function stepInstruction(row: Record<string, unknown>): string | null {
+  return (
+    optionalText(row.instruction, LIMITS.instructionMax) ??
+    optionalText(row.text, LIMITS.instructionMax) ??
+    optionalText(row.step, LIMITS.instructionMax) ??
+    optionalText(row.direction, LIMITS.instructionMax)
+  );
+}
+
+function formatServingUnit(value: unknown): string {
+  const unit = optionalText(value, 40) || "Servings";
+  return unit.toLowerCase() === "servings" ? "Servings" : unit;
+}
+
 export function parseVisionRecipeJson(text: string): RecipeImageParseResult {
-  const rec = parseJsonObject(text);
-  if (!rec) {
+  const parsed = parseJsonObject(text);
+  if (!parsed) {
     return { ok: false, status: 502, error: "Could not read a recipe in those photos. Try again." };
   }
+  const rec = unwrapRecipeRecord(parsed);
   if (rec.isRecipe === false) {
     return {
       ok: false,
@@ -232,24 +364,13 @@ export function parseVisionRecipeJson(text: string): RecipeImageParseResult {
     };
   }
 
-  const title = sanitizeString(rec.title, LIMITS.titleMax);
-  if (!title) {
-    return { ok: false, status: 422, error: "Could not find a recipe title in those photos." };
-  }
-
-  const ingredientsRaw = collectNamedArrays(rec, [
-    "ingredients",
-    "ingredientList",
-    "sauce",
-    "sauceIngredients",
-    "stickySauce",
-  ]);
-  const stepsRaw = collectNamedArrays(rec, ["steps", "directions", "instructions"]);
+  const ingredientsRaw = collectNamedLists(rec, INGREDIENT_KEYS);
+  const stepsRaw = collectNamedLists(rec, STEP_KEYS);
   const ingredients = ingredientsRaw
     .slice(0, LIMITS.maxIngredients)
     .map((item) => {
       if (typeof item === "string") {
-        const name = sanitizeString(item, LIMITS.ingredientNameMax);
+        const name = optionalText(item, LIMITS.ingredientNameMax);
         return name
           ? { name, quantity: 0, unit: "", notes: null, isOptional: false }
           : null;
@@ -261,8 +382,8 @@ export function parseVisionRecipeJson(text: string): RecipeImageParseResult {
       return {
         name,
         quantity: parseQuantity(row.quantity),
-        unit: sanitizeString(row.unit, 50) ?? "",
-        notes: sanitizeString(row.notes, 200),
+        unit: optionalText(row.unit, 50) ?? "",
+        notes: optionalText(row.notes, 200),
         isOptional: row.isOptional === true,
       };
     })
@@ -272,7 +393,7 @@ export function parseVisionRecipeJson(text: string): RecipeImageParseResult {
     .slice(0, LIMITS.maxSteps)
     .map((item) => {
       if (typeof item === "string") {
-        const instruction = sanitizeString(item, LIMITS.instructionMax);
+        const instruction = optionalText(item, LIMITS.instructionMax);
         return instruction ? { instruction, timerMinutes: null } : null;
       }
       if (!item || typeof item !== "object") return null;
@@ -287,13 +408,23 @@ export function parseVisionRecipeJson(text: string): RecipeImageParseResult {
     })
     .filter((item): item is NonNullable<typeof item> => Boolean(item));
 
-  if (ingredients.length === 0 && steps.length === 0) {
+  if (ingredients.length === 0 || steps.length === 0) {
     return {
       ok: false,
       status: 422,
-      error: "Could not find ingredients or steps in those photos.",
+      error:
+        ingredients.length === 0
+          ? "Could not find ingredients in those photos. Try a clearer shot of the list."
+          : "Could not find instructions in those photos. Try a clearer shot of the steps.",
     };
   }
+
+  const title =
+    optionalText(rec.title, LIMITS.titleMax) ??
+    optionalText(rec.name, LIMITS.titleMax) ??
+    optionalText(rec.recipeName, LIMITS.titleMax) ??
+    optionalText(rec.dish, LIMITS.titleMax) ??
+    ingredients[0].name;
 
   const servingsRaw = typeof rec.servings === "number" ? rec.servings : Number(rec.servings);
   const servings =
@@ -302,18 +433,28 @@ export function parseVisionRecipeJson(text: string): RecipeImageParseResult {
   const times: string[] = [];
   if (typeof rec.prepTime === "number" && rec.prepTime > 0) times.push(`Prep ${rec.prepTime} min`);
   if (typeof rec.cookTime === "number" && rec.cookTime > 0) times.push(`Cook ${rec.cookTime} min`);
-  const descriptionBits = [sanitizeString(rec.description, LIMITS.descriptionMax), times.join(". ")].filter(
-    Boolean
+  const written =
+    optionalText(rec.description, LIMITS.descriptionMax) ??
+    optionalText(rec.summary, LIMITS.descriptionMax);
+  const descriptionBits = [
+    written ?? fallbackDescription(title, ingredients.map((row) => row.name)),
+    times.join(". "),
+  ].filter(Boolean);
+
+  const haystack = [title, written ?? "", ...ingredients.map((row) => row.name), ...steps.map((row) => row.instruction)].join(" ");
+  const tagLabels = completeTagLabels(
+    parseTagLabels(rec.tags ?? rec.tagLabels ?? rec.categories),
+    haystack
   );
 
   return {
     ok: true,
     recipe: {
       title,
-      description: descriptionBits.length ? descriptionBits.join(" · ").slice(0, LIMITS.descriptionMax) : null,
+      description: descriptionBits.join(" · ").slice(0, LIMITS.descriptionMax),
       servings,
       servingUnit: formatServingUnit(rec.servingUnit),
-      tagLabels: parseTagLabels(rec.tags),
+      tagLabels,
       ingredients,
       steps,
     },
@@ -343,7 +484,7 @@ export async function readRecipeFromImages(
       body: JSON.stringify({
         model: options.model ?? GROQ_VISION_MODEL,
         temperature: 0,
-        max_completion_tokens: 2048,
+        max_completion_tokens: 3072,
         reasoning_effort: "none",
         response_format: { type: "json_object" },
         messages: [

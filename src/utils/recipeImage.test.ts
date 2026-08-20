@@ -5,6 +5,7 @@ import {
   RECIPE_PHOTO_MAX_COUNT,
   recipePhotoMaxBytesForCount,
   reorderRecipePhotos,
+  isCompleteRecipeImport,
 } from "./recipeImage";
 
 describe("isRecipePhotoFile", () => {
@@ -36,5 +37,23 @@ describe("isRecipePhotoFile", () => {
     expect(reorderRecipePhotos(["a", "b", "c"], 2, 0)).toEqual(["c", "a", "b"]);
     expect(reorderRecipePhotos(["a", "b", "c"], 0, 2)).toEqual(["b", "c", "a"]);
     expect(reorderRecipePhotos(["a", "b"], 0, 3)).toEqual(["a", "b"]);
+  });
+});
+
+describe("isCompleteRecipeImport", () => {
+  it("requires name, description, tags, ingredients, and instructions", () => {
+    const complete = {
+      title: "Pancakes",
+      description: "Fluffy breakfast cakes.",
+      tagLabels: ["Sweet", "Dessert"],
+      ingredients: [{ name: "flour" }],
+      steps: [{ instruction: "Mix and cook." }],
+    };
+    expect(isCompleteRecipeImport(complete)).toBe(true);
+    expect(isCompleteRecipeImport({ ...complete, title: " " })).toBe(false);
+    expect(isCompleteRecipeImport({ ...complete, description: "" })).toBe(false);
+    expect(isCompleteRecipeImport({ ...complete, tagLabels: [] })).toBe(false);
+    expect(isCompleteRecipeImport({ ...complete, ingredients: [{ name: "" }] })).toBe(false);
+    expect(isCompleteRecipeImport({ ...complete, steps: [{ instruction: "" }] })).toBe(false);
   });
 });
