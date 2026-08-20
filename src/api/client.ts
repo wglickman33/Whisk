@@ -140,6 +140,7 @@ export interface RecipeInput {
     isOptional?: boolean;
   }[];
   steps?: { instruction: string; timerMinutes?: number | null; imageUrl?: string | null }[];
+  tagLabels?: string[];
 }
 
 export const recipesApi = {

@@ -58,7 +58,9 @@ describe("parseVisionRecipeJson", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.recipe.title).toBe("Firecracker Salmon");
-    expect(result.recipe.description).toContain("Prep 15 min");
+    expect(result.recipe.description).toContain("Spicy glaze");
+    expect(result.recipe.servingUnit).toBe("Servings");
+    expect(result.recipe.tagLabels).toEqual([]);
     expect(result.recipe.ingredients[1].quantity).toBe(0.5);
     expect(result.recipe.steps[0].timerMinutes).toBe(18);
   });
@@ -95,6 +97,25 @@ describe("parseVisionRecipeJson", () => {
     if (!result.ok) return;
     expect(result.recipe.ingredients.map((row) => row.name)).toEqual(["thin chicken cutlets", "honey"]);
     expect(result.recipe.steps[0].instruction).toBe("Bake until crispy.");
+  });
+
+  it("capitalizes Servings and keeps a description and tags", () => {
+    const result = parseVisionRecipeJson(
+      JSON.stringify({
+        isRecipe: true,
+        title: "Schnitzel",
+        description: "Crispy baked chicken with a sticky chili-honey sauce.",
+        servingUnit: "servings",
+        tags: ["savory", "Chicken", "savory"],
+        ingredients: ["chicken"],
+        steps: ["bake"],
+      })
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.recipe.servingUnit).toBe("Servings");
+    expect(result.recipe.description).toContain("Crispy baked chicken");
+    expect(result.recipe.tagLabels).toEqual(["savory", "Chicken"]);
   });
 });
 

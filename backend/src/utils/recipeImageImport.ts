@@ -14,6 +14,7 @@ export type ParsedRecipeDraft = {
   description: string | null;
   servings: number;
   servingUnit: string;
+  tagLabels: string[];
   ingredients: {
     name: string;
     quantity: number;
@@ -32,10 +33,13 @@ const RECIPE_IMAGE_PROMPT =
   "Read the recipe in these photos. They are pages of the same recipe, in order from first to last. " +
   "Combine them into one recipe. Merge overlapping lines. Reply with JSON only. " +
   "If none of the photos is a recipe, use {\"isRecipe\":false}. " +
-  "If it is a recipe, use {\"isRecipe\":true,\"title\":\"\",\"description\":null,\"servings\":4,\"servingUnit\":\"servings\"," +
-  "\"prepTime\":null,\"cookTime\":null,\"ingredients\":[{\"name\":\"\",\"quantity\":1,\"unit\":\"\",\"notes\":null,\"isOptional\":false}]," +
+  "If it is a recipe, use {\"isRecipe\":true,\"title\":\"\",\"description\":\"\",\"servings\":4,\"servingUnit\":\"Servings\"," +
+  "\"prepTime\":null,\"cookTime\":null,\"tags\":[\"Savory\"]," +
+  "\"ingredients\":[{\"name\":\"\",\"quantity\":1,\"unit\":\"\",\"notes\":null,\"isOptional\":false}]," +
   "\"steps\":[{\"instruction\":\"\",\"timerMinutes\":null}]}. " +
   "Put every ingredient into ingredients and every direction into steps. Do not stop after the first item. " +
+  "Write one short description sentence from what is visible. " +
+  "Add 2 to 4 short tags. Prefer labels like Savory, Sweet, Spicy, Vegetarian, Fish, Chicken, Beef, Dessert, or Dinner. " +
   "Copy quantities from the photos. Do not invent ingredients or steps that are not visible. " +
   "If a field is missing, use null or a sensible default for servings.";
 
@@ -195,6 +199,26 @@ function stepInstruction(row: Record<string, unknown>): string | null {
   );
 }
 
+function formatServingUnit(value: unknown): string {
+  const unit = sanitizeString(value, 40) || "Servings";
+  return unit.toLowerCase() === "servings" ? "Servings" : unit;
+}
+
+function parseTagLabels(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  const seen = new Set<string>();
+  const labels: string[] = [];
+  for (const item of raw.slice(0, 6)) {
+    const label = sanitizeString(item, LIMITS.tagLabelMax);
+    if (!label) continue;
+    const key = label.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    labels.push(label);
+  }
+  return labels;
+}
+
 export function parseVisionRecipeJson(text: string): RecipeImageParseResult {
   const rec = parseJsonObject(text);
   if (!rec) {
@@ -288,7 +312,8 @@ export function parseVisionRecipeJson(text: string): RecipeImageParseResult {
       title,
       description: descriptionBits.length ? descriptionBits.join(" · ").slice(0, LIMITS.descriptionMax) : null,
       servings,
-      servingUnit: sanitizeString(rec.servingUnit, 40) || "servings",
+      servingUnit: formatServingUnit(rec.servingUnit),
+      tagLabels: parseTagLabels(rec.tags),
       ingredients,
       steps,
     },

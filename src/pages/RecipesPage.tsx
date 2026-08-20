@@ -30,6 +30,7 @@ import {
 } from "../utils/recipeImage";
 import { RecipePhotoStaging, type StagedRecipePhoto } from "../components/recipes/RecipePhotoStaging";
 import { findDuplicateItemNames, filterNonDuplicateItems } from "../utils/shoppingListDedupe";
+import { matchRecipeImportTags } from "../utils/recipeImportTags";
 import { DuplicateItemsModal } from "../components/shopping/DuplicateItemsModal";
 import { ListPickerModal } from "../components/shopping/ListPickerModal";
 import { RecipeExportMenu } from "../components/recipes/RecipeExportMenu";
@@ -724,14 +725,16 @@ interface RecipeFormProps {
 }
 
 function RecipeForm({ recipe, draft, folders, allTags, onClose, onSaved, onTagsChanged }: RecipeFormProps) {
+  const importTags = recipe
+    ? { matchedIds: recipe.tags?.map((t) => t.tag.id) ?? [], pendingLabels: [] as string[] }
+    : matchRecipeImportTags(allTags, draft?.tagLabels);
   const [title, setTitle] = useState(recipe?.title ?? draft?.title ?? "");
   const [description, setDescription] = useState(recipe?.description ?? draft?.description ?? "");
   const [servings, setServings] = useState(recipe?.servings ?? draft?.servings ?? 4);
   const [servingUnit, setServingUnit] = useState(recipe?.servingUnit ?? draft?.servingUnit ?? "Servings");
   const [folderId, setFolderId] = useState(recipe?.folderId ?? recipe?.folder?.id ?? "");
-  const [selectedTagIds, setSelectedTagIds] = useState<string[]>(
-    recipe?.tags?.map((t) => t.tag.id) ?? []
-  );
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>(importTags.matchedIds);
+  const [pendingTagLabels, setPendingTagLabels] = useState<string[]>(importTags.pendingLabels);
   const [ingredients, setIngredients] = useState(
     recipe?.ingredients.length
       ? recipe.ingredients.map((i) => ({
@@ -835,14 +838,24 @@ function RecipeForm({ recipe, draft, folders, allTags, onClose, onSaved, onTagsC
           }),
       };
 
+      let tagIds = [...selectedTagIds];
+      if (pendingTagLabels.length) {
+        const created: Tag[] = [];
+        for (const label of pendingTagLabels) {
+          created.push(await tagsApi.create(label));
+        }
+        tagIds = [...tagIds, ...created.map((tag) => tag.id)];
+        onTagsChanged([...allTags, ...created].sort((a, b) => a.label.localeCompare(b.label)));
+      }
+
       let saved: Recipe;
       if (recipe) {
         saved = await recipesApi.update(recipe.id, body);
-        const { tags } = await tagsApi.setRecipeTags(recipe.id, selectedTagIds);
+        const { tags } = await tagsApi.setRecipeTags(recipe.id, tagIds);
         onSaved({ ...saved, tags: tags.map((tag) => ({ tag })) }, true);
       } else {
         saved = await recipesApi.create(body);
-        const { tags } = await tagsApi.setRecipeTags(saved.id, selectedTagIds);
+        const { tags } = await tagsApi.setRecipeTags(saved.id, tagIds);
         onSaved({ ...saved, tags: tags.map((tag) => ({ tag })) }, false);
       }
     } catch (err) {
@@ -914,6 +927,18 @@ function RecipeForm({ recipe, draft, folders, allTags, onClose, onSaved, onTagsC
                   onClick={() => toggleTag(tag.id)}
                 >
                   {tag.label}
+                </button>
+              ))}
+              {pendingTagLabels.map((label) => (
+                <button
+                  key={`pending-${label}`}
+                  type="button"
+                  className="recipes-form__tag recipes-form__tag--active"
+                  onClick={() =>
+                    setPendingTagLabels((prev) => prev.filter((item) => item.toLowerCase() !== label.toLowerCase()))
+                  }
+                >
+                  {label}
                 </button>
               ))}
               <button type="button" className="recipes-form__add" onClick={openTagModal}>
