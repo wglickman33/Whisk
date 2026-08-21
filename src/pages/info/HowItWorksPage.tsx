@@ -102,7 +102,7 @@ export function HowItWorksPage() {
         <ol>
           <li>Save recipes with folders, tags, and scaled servings.</li>
           <li>
-            Import from a URL, a Whisk JSON export, or up to five photos of a long recipe, in page order.
+            Import from a URL, a Whisk JSON export, or up to two photos of a long recipe, in page order.
           </li>
           <li>Export as Whisk JSON (full round-trip), PDF, or plain text.</li>
           <li>Send ingredients to your shopping list with optional deduplication.</li>

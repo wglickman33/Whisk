@@ -1,10 +1,14 @@
 import { GROQ_CHAT_URL, parseGroqChatPayload } from "./groqChat.js";
+import {
+  GROQ_VISION_MAX_COMPLETION_TOKENS,
+  RECIPE_IMAGE_MAX_BYTES,
+  RECIPE_IMAGE_MAX_COUNT,
+  RECIPE_IMAGE_MAX_TOTAL_BYTES,
+} from "../constants/recipePhotoImport.js";
 import { LIMITS, sanitizeString } from "./validation.js";
 
 export const GROQ_VISION_MODEL = "qwen/qwen3.6-27b";
-export const RECIPE_IMAGE_MAX_BYTES = 1_500_000;
-export const RECIPE_IMAGE_MAX_COUNT = 5;
-export const RECIPE_IMAGE_MAX_TOTAL_BYTES = 5_000_000;
+export { RECIPE_IMAGE_MAX_COUNT } from "../constants/recipePhotoImport.js";
 
 const ALLOWED_MIME = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 const DATA_URL_RE = /^data:(image\/(?:jpeg|png|webp|gif));base64,([A-Za-z0-9+/=\s]+)$/i;
@@ -173,7 +177,7 @@ export function parseRecipeImageBody(
     if ("error" in parsed) return parsed;
     totalBytes += parsed.bytes;
     if (totalBytes > RECIPE_IMAGE_MAX_TOTAL_BYTES) {
-      return { error: "Those photos are too large together. Try fewer or closer crops." };
+      return { error: "Those pages are too large together. Try one page or tighter crops." };
     }
     dataUrls.push(parsed.dataUrl);
   }
@@ -484,7 +488,7 @@ export async function readRecipeFromImages(
       body: JSON.stringify({
         model: options.model ?? GROQ_VISION_MODEL,
         temperature: 0,
-        max_completion_tokens: 3072,
+        max_completion_tokens: GROQ_VISION_MAX_COMPLETION_TOKENS,
         reasoning_effort: "none",
         response_format: { type: "json_object" },
         messages: [
@@ -517,8 +521,8 @@ export async function readRecipeFromImages(
           ok: false,
           status: 429,
           error: tooManyTokens
-            ? "Those photos are too large together. Try fewer or closer crops."
-            : "Photo import is busy right now. Try again in a moment.",
+            ? "Those pages are too much for one read right now. Try one page, tighter crops, or wait a minute."
+            : "Photo import is busy right now. Try again in a minute.",
         };
       }
       return { ok: false, status: 502, error: "Could not read those recipe photos. Try again." };

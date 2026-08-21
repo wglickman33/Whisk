@@ -23,8 +23,8 @@ import { importRecipeFromFile } from "../utils/recipeTransfer";
 import {
   isRecipePhotoFile,
   isCompleteRecipeImport,
+  getRecipePhotoImportLimits,
   recipePhotoToDataUrl,
-  recipePhotoMaxBytesForCount,
   prepareRecipePhotoFile,
   reorderRecipePhotos,
   RECIPE_PHOTO_MAX_COUNT,
@@ -254,10 +254,10 @@ export function RecipesPage() {
     if (stagedPhotos.length === 0 || importingPhoto) return;
     setImportingPhoto(true);
     try {
-      const maxBytes = recipePhotoMaxBytesForCount(stagedPhotos.length);
+      const limits = getRecipePhotoImportLimits(stagedPhotos.length);
       const images: string[] = [];
       for (const photo of stagedPhotos) {
-        images.push(await recipePhotoToDataUrl(photo.file, { maxBytes }));
+        images.push(await recipePhotoToDataUrl(photo.file, { ...limits, pageCount: stagedPhotos.length }));
       }
       const { recipe } = await recipesApi.importImage(images);
       if (!isCompleteRecipeImport(recipe)) {
@@ -417,7 +417,7 @@ export function RecipesPage() {
             className="recipes-page__import-file-btn"
             onClick={() => importPhotoRef.current?.click()}
             disabled={importingPhoto || importingFile || stagedPhotos.length >= RECIPE_PHOTO_MAX_COUNT}
-            title="Select up to 5 screenshots in page order"
+            title="Select up to 2 screenshots in page order"
           >
             {stagedPhotos.length > 0 ? "Add photos" : "Import photos"}
           </button>

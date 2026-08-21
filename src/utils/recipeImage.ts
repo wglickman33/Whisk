@@ -1,9 +1,25 @@
+import {
+  getRecipePhotoImportLimits,
+  RECIPE_PHOTO_IMPORT_MAX_COUNT,
+  RECIPE_PHOTO_MAX_BYTES,
+  RECIPE_PHOTO_MAX_COUNT,
+  RECIPE_PHOTO_MAX_SIDE,
+  recipePhotoMaxBytesForCount,
+  type RecipePhotoImportLimits,
+} from "../constants/recipePhotoImport";
 import { validateImageForTools } from "./fileSecurity";
 import { loadImageElement, canvasToBlob } from "./tools/imageCanvas";
 
-export const RECIPE_PHOTO_MAX_SIDE = 1024;
-export const RECIPE_PHOTO_MAX_BYTES = 1_200_000;
-export const RECIPE_PHOTO_MAX_COUNT = 5;
+export {
+  getRecipePhotoImportLimits,
+  RECIPE_PHOTO_IMPORT_MAX_COUNT,
+  RECIPE_PHOTO_MAX_BYTES,
+  RECIPE_PHOTO_MAX_COUNT,
+  RECIPE_PHOTO_MAX_SIDE,
+  recipePhotoMaxBytesForCount,
+  type RecipePhotoImportLimits,
+};
+
 const ACCEPTED = new Set(["png", "jpg", "jpeg", "webp", "gif", "heic", "heif", "bmp"]);
 
 export function isRecipePhotoFile(file: File): boolean {
@@ -49,11 +65,6 @@ export function isCompleteRecipeImport(recipe: {
   );
 }
 
-export function recipePhotoMaxBytesForCount(count: number): number {
-  const n = Math.max(1, Math.min(count, RECIPE_PHOTO_MAX_COUNT));
-  return Math.min(RECIPE_PHOTO_MAX_BYTES, Math.floor(4_500_000 / n));
-}
-
 export function reorderRecipePhotos<T>(items: T[], from: number, to: number): T[] {
   if (from === to || from < 0 || to < 0 || from >= items.length || to >= items.length) {
     return items;
@@ -75,7 +86,7 @@ export async function prepareRecipePhotoFile(file: File): Promise<File> {
 
 export async function recipePhotoToDataUrl(
   file: File,
-  options?: { maxBytes?: number }
+  options?: Partial<RecipePhotoImportLimits> & { pageCount?: number }
 ): Promise<string> {
   const basic = await validateImageForTools(file);
   if (!basic.ok) throw new Error(basic.error ?? "That photo cannot be used.");
@@ -85,11 +96,15 @@ export async function recipePhotoToDataUrl(
     /\.(heic|heif)$/i.test(file.name) || file.type === "image/heic" || file.type === "image/heif";
   if (isHeic) prepared = await convertHeicToJpeg(file);
 
-  const maxBytes = options?.maxBytes ?? RECIPE_PHOTO_MAX_BYTES;
+  const limits = {
+    ...getRecipePhotoImportLimits(options?.pageCount ?? 1),
+    ...options,
+  };
+
   const objectUrl = URL.createObjectURL(prepared);
   try {
     const img = await loadImageElement(objectUrl);
-    const scale = Math.min(1, RECIPE_PHOTO_MAX_SIDE / Math.max(img.naturalWidth, img.naturalHeight));
+    const scale = Math.min(1, limits.maxSide / Math.max(img.naturalWidth, img.naturalHeight));
     const width = Math.max(1, Math.round(img.naturalWidth * scale));
     const height = Math.max(1, Math.round(img.naturalHeight * scale));
     const canvas = document.createElement("canvas");
@@ -99,13 +114,11 @@ export async function recipePhotoToDataUrl(
     if (!ctx) throw new Error("Could not prepare that photo. Try a different file.");
     ctx.drawImage(img, 0, 0, width, height);
 
-    let quality = 0.82;
-    let blob = await canvasToBlob(canvas, "image/jpeg", quality);
-    if (blob.size > maxBytes) {
-      quality = 0.65;
-      blob = await canvasToBlob(canvas, "image/jpeg", quality);
+    let blob = await canvasToBlob(canvas, "image/jpeg", limits.jpegQuality);
+    if (blob.size > limits.maxBytes) {
+      blob = await canvasToBlob(canvas, "image/jpeg", limits.jpegQualityFallback);
     }
-    if (blob.size > maxBytes) {
+    if (blob.size > limits.maxBytes) {
       throw new Error("That photo is still too large. Try a closer crop.");
     }
     return blobToDataUrl(blob);

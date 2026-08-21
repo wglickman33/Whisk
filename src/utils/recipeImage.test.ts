@@ -1,11 +1,10 @@
 import { describe, it, expect } from "vitest";
 import {
   isRecipePhotoFile,
-  RECIPE_PHOTO_MAX_SIDE,
-  RECIPE_PHOTO_MAX_COUNT,
-  recipePhotoMaxBytesForCount,
+  getRecipePhotoImportLimits,
   reorderRecipePhotos,
   isCompleteRecipeImport,
+  RECIPE_PHOTO_MAX_COUNT,
 } from "./recipeImage";
 
 describe("isRecipePhotoFile", () => {
@@ -20,17 +19,14 @@ describe("isRecipePhotoFile", () => {
     expect(isRecipePhotoFile(new File([""], "recipe.json", { type: "application/json" }))).toBe(false);
   });
 
-  it("keeps a phone-sized max dimension", () => {
-    expect(RECIPE_PHOTO_MAX_SIDE).toBe(1024);
+  it("caps a recipe at two pages for now", () => {
+    expect(RECIPE_PHOTO_MAX_COUNT).toBe(2);
   });
 
-  it("caps a recipe at five photos", () => {
-    expect(RECIPE_PHOTO_MAX_COUNT).toBe(5);
-  });
-
-  it("tightens each photo when several are sent together", () => {
-    expect(recipePhotoMaxBytesForCount(1)).toBe(1_200_000);
-    expect(recipePhotoMaxBytesForCount(5)).toBe(900_000);
+  it("tightens compression when two pages are staged", () => {
+    expect(getRecipePhotoImportLimits(1).maxSide).toBe(1024);
+    expect(getRecipePhotoImportLimits(2).maxSide).toBe(768);
+    expect(getRecipePhotoImportLimits(2).maxBytes).toBeLessThan(getRecipePhotoImportLimits(1).maxBytes);
   });
 
   it("reorders pages without dropping any", () => {

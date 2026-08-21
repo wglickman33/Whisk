@@ -203,7 +203,7 @@ describe("readRecipeFromImages", () => {
     const body = JSON.parse(String(init.body));
     expect(body.model).toBe(GROQ_VISION_MODEL);
     expect(body.reasoning_effort).toBe("none");
-    expect(body.max_completion_tokens).toBe(3072);
+    expect(body.max_completion_tokens).toBe(2048);
     expect(body.response_format).toEqual({ type: "json_object" });
     expect(body.messages[0].content.filter((part: { type: string }) => part.type === "image_url")).toHaveLength(2);
   });
@@ -227,7 +227,7 @@ describe("readRecipeFromImages", () => {
     });
     const result = await readRecipeFromImages([JPEG_DATA, JPEG_DATA], { apiKey: "key", fetchFn });
     expect(result).toMatchObject({ ok: false, status: 429 });
-    if (!result.ok) expect(result.error).toMatch(/too large together/i);
+    if (!result.ok) expect(result.error).toMatch(/too much for one read/i);
   });
 
   it("maps an unknown Groq model to 502", async () => {
