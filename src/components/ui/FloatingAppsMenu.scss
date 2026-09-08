@@ -383,10 +383,10 @@ body:has(.auth-modal-overlay),
 body:has(.shopping-list-modal-overlay),
 body:has(.add-item-modal-overlay),
 body:has(.duplicate-items-modal-overlay),
-body:has(.list-picker-overlay) {
+body:has(.list-picker-overlay),
+body.whisk-hide-fab {
   .floating-apps {
-    visibility: hidden;
-    pointer-events: none;
+    display: none;
   }
 }
 

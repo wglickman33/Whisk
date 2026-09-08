@@ -16,9 +16,12 @@
   animation: recipe-view-fade-in 0.2s ease;
 
   @media (max-width: 480px) {
-    padding: 0.5rem;
-    align-items: flex-start;
-    padding-block-end: 1.5rem;
+    padding: max(0.5rem, env(safe-area-inset-top, 0px))
+      max(0.5rem, env(safe-area-inset-right, 0px))
+      max(0.5rem, env(safe-area-inset-bottom, 0px))
+      max(0.5rem, env(safe-area-inset-left, 0px));
+    align-items: stretch;
+    overflow: hidden;
   }
 }
 
@@ -41,8 +44,9 @@
   animation: recipe-view-slide-in 0.25s ease;
 
   @media (max-width: 480px) {
-    max-height: none;
-    min-height: min(92vh, 700px);
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: 100%;
     border-radius: $radius-md;
   }
 }

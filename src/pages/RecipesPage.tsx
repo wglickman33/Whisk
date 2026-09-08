@@ -41,6 +41,7 @@ import {
   IngredientQuantityInput,
   IngredientQuantitySuggestions,
 } from "../components/recipes/IngredientQuantityInput";
+import { useHideFloatingApps } from "../hooks/useHideFloatingApps";
 import "./RecipesPage.scss";
 
 export function RecipesPage() {
@@ -81,6 +82,15 @@ export function RecipesPage() {
     listName: string;
   } | null>(null);
   const [dupeSaving, setDupeSaving] = useState(false);
+
+  const hideFloatingApps =
+    formOpen ||
+    viewingId != null ||
+    deleteConfirm != null ||
+    folderModalOpen ||
+    listPickerOpen ||
+    dupeConfirm != null;
+  useHideFloatingApps(hideFloatingApps);
 
   const fetchRecipes = useCallback(async () => {
     if (!isSignedIn) return;
