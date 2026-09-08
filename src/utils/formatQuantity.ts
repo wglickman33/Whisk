@@ -21,7 +21,15 @@ export function formatQuantity(q: number): string {
                 ? "⅔"
                 : Math.abs(frac - 0.75) < 0.02
                   ? "¾"
-                  : frac.toFixed(2).replace(/\.?0+$/, "");
+                  : Math.abs(frac - 0.125) < 0.02
+                    ? "⅛"
+                    : Math.abs(frac - 0.375) < 0.02
+                      ? "⅜"
+                      : Math.abs(frac - 0.625) < 0.02
+                        ? "⅝"
+                        : Math.abs(frac - 0.875) < 0.02
+                          ? "⅞"
+                          : frac.toFixed(2).replace(/\.?0+$/, "");
 
   const wholeStr = whole > 0 ? String(whole) : "";
   const combined = wholeStr && fracStr ? `${wholeStr} ${fracStr}` : wholeStr || fracStr;

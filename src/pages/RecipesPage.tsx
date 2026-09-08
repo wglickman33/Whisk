@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef, useId } from "react";
 import { useAuthStore } from "../store/authStore";
 import { useAuthModalStore } from "../store/authModalStore";
 import {
@@ -37,6 +37,10 @@ import { ListPickerModal } from "../components/shopping/ListPickerModal";
 import { RecipeExportMenu } from "../components/recipes/RecipeExportMenu";
 import { IconRecipe } from "../components/ui/SidebarIcons";
 import { RecipeView } from "../components/recipes/RecipeView";
+import {
+  IngredientQuantityInput,
+  IngredientQuantitySuggestions,
+} from "../components/recipes/IngredientQuantityInput";
 import "./RecipesPage.scss";
 
 export function RecipesPage() {
@@ -773,6 +777,7 @@ function RecipeForm({ recipe, draft, folders, allTags, onClose, onSaved, onTagsC
   const [tagModalOpen, setTagModalOpen] = useState(false);
   const [tagName, setTagName] = useState("");
   const [tagSaving, setTagSaving] = useState(false);
+  const qtySuggestionsId = useId();
 
   const toggleTag = (tagId: string) => {
     setSelectedTagIds((prev) =>
@@ -954,10 +959,22 @@ function RecipeForm({ recipe, draft, folders, allTags, onClose, onSaved, onTagsC
 
           <div className="recipes-form__section">
             <h3>Ingredients</h3>
+            <IngredientQuantitySuggestions listId={qtySuggestionsId} />
             {ingredients.map((ing, i) => (
               <div key={i} className="recipes-form__ingredient">
                 <input type="text" placeholder="Name" value={ing.name} onChange={(e) => setIngredients((prev) => { const n = [...prev]; n[i] = { ...n[i], name: e.target.value }; return n; })} />
-                <input type="number" placeholder="Qty" min={0} step={0.25} value={ing.quantity || ""} onChange={(e) => setIngredients((prev) => { const n = [...prev]; n[i] = { ...n[i], quantity: e.target.value ? Number(e.target.value) : 0 }; return n; })} />
+                <IngredientQuantityInput
+                  className="recipes-form__qty-input"
+                  listId={qtySuggestionsId}
+                  value={ing.quantity}
+                  onChange={(quantity) =>
+                    setIngredients((prev) => {
+                      const n = [...prev];
+                      n[i] = { ...n[i], quantity };
+                      return n;
+                    })
+                  }
+                />
                 <input type="text" placeholder="Unit" value={ing.unit} onChange={(e) => setIngredients((prev) => { const n = [...prev]; n[i] = { ...n[i], unit: e.target.value }; return n; })} />
                 <button type="button" className="recipes-form__row-remove" onClick={() => setIngredients((prev) => prev.filter((_, idx) => idx !== i))} aria-label="Remove ingredient">
                   <span aria-hidden>&times;</span>

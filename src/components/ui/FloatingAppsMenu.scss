@@ -377,6 +377,19 @@ $tori-ink: #12121f;
   }
 }
 
+body:has(.recipes-form-overlay),
+body:has(.recipe-view-overlay),
+body:has(.auth-modal-overlay),
+body:has(.shopping-list-modal-overlay),
+body:has(.add-item-modal-overlay),
+body:has(.duplicate-items-modal-overlay),
+body:has(.list-picker-overlay) {
+  .floating-apps {
+    visibility: hidden;
+    pointer-events: none;
+  }
+}
+
 [data-theme="dark"] {
   .floating-apps__fab {
     background: var(--accent);

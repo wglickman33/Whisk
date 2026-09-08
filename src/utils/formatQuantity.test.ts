@@ -6,6 +6,8 @@ describe("formatQuantity", () => {
     expect(formatQuantity(0.5)).toBe("½");
     expect(formatQuantity(1.5)).toBe("1 ½");
     expect(formatQuantity(0.25)).toBe("¼");
+    expect(formatQuantity(0.125)).toBe("⅛");
+    expect(formatQuantity(1.375)).toBe("1 ⅜");
   });
 
   it("handles zero and whole numbers", () => {
