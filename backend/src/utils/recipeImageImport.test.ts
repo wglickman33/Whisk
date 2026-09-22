@@ -230,7 +230,7 @@ describe("readRecipeFromImages", () => {
     if (!result.ok) expect(result.error).toMatch(/too much for one read/i);
   });
 
-  it("maps an unknown Groq model to 502", async () => {
+  it("maps an unknown Groq model to 503", async () => {
     const fetchFn = vi.fn().mockResolvedValue({
       ok: false,
       status: 404,
@@ -239,6 +239,6 @@ describe("readRecipeFromImages", () => {
       }),
     });
     const result = await readRecipeFromImages([JPEG_DATA], { apiKey: "key", fetchFn });
-    expect(result).toMatchObject({ ok: false, status: 502 });
+    expect(result).toMatchObject({ ok: false, status: 503 });
   });
 });

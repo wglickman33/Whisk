@@ -7,7 +7,13 @@ import {
 } from "../constants/recipePhotoImport.js";
 import { LIMITS, sanitizeString } from "./validation.js";
 
-export const GROQ_VISION_MODEL = "qwen/qwen3.6-27b";
+/** Default Groq vision model; override with GROQ_VISION_MODEL if Groq rotates IDs. */
+export const GROQ_VISION_MODEL = "qwen/qwen3.8-27b";
+
+export function resolveGroqVisionModel(): string {
+  const fromEnv = process.env.GROQ_VISION_MODEL?.trim();
+  return fromEnv || GROQ_VISION_MODEL;
+}
 export { RECIPE_IMAGE_MAX_COUNT } from "../constants/recipePhotoImport.js";
 
 const ALLOWED_MIME = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
@@ -486,7 +492,7 @@ export async function readRecipeFromImages(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: options.model ?? GROQ_VISION_MODEL,
+        model: options.model ?? resolveGroqVisionModel(),
         temperature: 0,
         max_completion_tokens: GROQ_VISION_MAX_COMPLETION_TOKENS,
         reasoning_effort: "none",
@@ -523,6 +529,13 @@ export async function readRecipeFromImages(
           error: tooManyTokens
             ? "Those pages are too much for one read right now. Try one page, tighter crops, or wait a minute."
             : "Photo import is busy right now. Try again in a minute.",
+        };
+      }
+      if (response.status === 404 || groqCode === "model_not_found") {
+        return {
+          ok: false,
+          status: 503,
+          error: "Photo import is temporarily unavailable. Try again later.",
         };
       }
       return { ok: false, status: 502, error: "Could not read those recipe photos. Try again." };
